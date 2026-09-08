@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Menu, X, Wallet } from "lucide-react";
 import { Mark } from "@/components/brand/Mark";
 import { useDesk } from "@/store/desk";
@@ -18,44 +18,63 @@ const NAV_ITEMS = [
   { to: "/docs", label: "Docs" },
 ];
 
+/** Logo + wordmark, top-left of the bar (landing and connected shell). */
+function Wordmark() {
+  return (
+    <Link
+      href="/"
+      className="group flex items-center gap-2.5 outline-none"
+      aria-label="Attora home"
+    >
+      <span className="transition-transform duration-300 ease-out group-hover:scale-105">
+        <Mark size={28} />
+      </span>
+      <div className="flex flex-col">
+        <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-snow">
+          Attora
+        </span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-mist/70">
+          Confidential Credit
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 export function Nav() {
-  const { connected, address, connect, disconnect } = useDesk();
+  const { connected, address, disconnect, openWalletModal } = useDesk();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
-  /** Connecting is the app's "login" — land on the portfolio. */
-  const handleConnect = () => {
-    if (connected) {
-      disconnect();
-    } else {
-      connect();
-      router.push("/portfolio");
-    }
-  };
+  // The full nav is the connected shell. Before connecting, only the landing
+  // keeps a bar: wordmark top-left, connect wallet top-right.
+  if (!connected) {
+    if (pathname !== "/") return null;
+    return (
+      <header className="sticky top-0 z-50">
+        <div className="border-b border-white/[0.06] bg-ink/65 backdrop-blur-2xl">
+          <div className="container flex h-16 items-center justify-between">
+            <Wordmark />
+            <button
+              type="button"
+              onClick={() => openWalletModal()}
+              className="btn-glass inline-flex h-9 items-center gap-2 rounded-[14px] px-4 font-body text-sm font-light transition-all duration-200 active:scale-95"
+            >
+              <Wallet className="size-3.5 text-mist" />
+              connect wallet
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-50">
       {/* translucent glass bar over the shader */}
       <div className="border-b border-white/[0.06] bg-ink/65 backdrop-blur-2xl transition-colors">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <Link
-            href="/"
-            className="group flex items-center gap-2.5 outline-none"
-            aria-label="Attora home"
-          >
-            <span className="transition-transform duration-300 ease-out group-hover:scale-105">
-              <Mark size={28} />
-            </span>
-            <div className="flex flex-col">
-              <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-snow">
-                Attora
-              </span>
-              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-mist/70">
-                Confidential Credit
-              </span>
-            </div>
-          </Link>
+          <Wordmark />
 
           {/* glassmorphic floating tabs */}
           <nav
@@ -78,26 +97,19 @@ export function Nav() {
             ))}
           </nav>
 
-          {/* right controls: interactive wallet button + mobile toggle */}
+          {/* right controls: connected wallet (click to disconnect) + mobile toggle */}
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleConnect}
+              onClick={disconnect}
+              title="Disconnect wallet"
               className={cn(
-                "btn-glass inline-flex h-9 items-center gap-2 rounded-full px-4 font-mono text-xs font-medium transition-all duration-200 active:scale-95",
-                connected
-                  ? "border-mint/30 bg-mint/10 text-mint hover:bg-mint/20"
-                  : "text-snow hover:bg-white/10",
+                "btn-glass inline-flex h-9 items-center gap-2 rounded-full border-mint/30 bg-mint/10 px-4 font-mono text-xs font-medium text-mint transition-all duration-200 hover:bg-mint/20 active:scale-95",
               )}
             >
               <Wallet className="size-3.5 text-mist" />
-              <span
-                className={cn(
-                  "size-1.5 rounded-full transition-colors",
-                  connected ? "bg-mint shadow-[0_0_8px_rgba(148,210,189,0.8)]" : "bg-mist/60",
-                )}
-              />
-              {connected && address ? truncateMiddle(address, 6, 4) : "Connect"}
+              <span className="size-1.5 rounded-full bg-mint shadow-[0_0_8px_rgba(145,197,255,0.8)]" />
+              {address ? truncateMiddle(address, 6, 4) : "Connected"}
             </button>
 
             <button

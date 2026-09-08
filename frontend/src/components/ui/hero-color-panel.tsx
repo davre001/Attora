@@ -120,17 +120,17 @@ interface HeroColorPanelsContextValue {
 }
 
 /**
- * Re-skinned to the Attora Mesh-drift palette (mint → sand over teal ink),
+ * Re-skinned to the 21st.dev theme ramp (periwinkle → blue over dark ink),
  * calmer motion. The pink/lime/purple template defaults are intentionally
- * NOT used, and the old green→blue gradient is retired.
+ * NOT used, and the old teal/mint palette is retired.
  */
-const attoraShaderColors = ["#94D2BD", "#E9D8A6", "#0a1116", "#005F73"];
+const attoraShaderColors = ["#91C5FF", "#3A81F6", "#0E0E0E", "#16223F"];
 
 const defaultDesktopShaderProps: Partial<ColorPanelsProps> = {
   width: 1280,
   height: 720,
   colors: attoraShaderColors,
-  colorBack: "#04090c00",
+  colorBack: "#17171700",
   density: 4.4,
   angle1: 0.68,
   angle2: 0.28,
@@ -147,7 +147,7 @@ const defaultDesktopShaderProps: Partial<ColorPanelsProps> = {
 
 const defaultMobileShaderProps: Partial<ColorPanelsProps> = {
   colors: attoraShaderColors,
-  colorBack: "#04090c00",
+  colorBack: "#17171700",
   density: 4.4,
   angle1: 0.68,
   angle2: 0.28,

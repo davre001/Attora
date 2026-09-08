@@ -60,5 +60,5 @@ export const FAUCETS = {
   cc3Ctc: "https://dashboard.cc3-testnet.creditcoin.network/faucet",
 } as const;
 
-/** Display unit for the CC3 test stablecoin. */
-export const STABLE_UNIT = "mUSD";
+/** Display unit for the CC3 borrowable dollar token (Ondo USDY). */
+export const STABLE_UNIT = "USDY";

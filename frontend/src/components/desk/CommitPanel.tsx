@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import { useDesk } from "@/store/desk";
-import { SEPOLIA } from "@/config/chains";
+import { SEPOLIA, STABLE_UNIT } from "@/config/chains";
 import { amountToTier, formatAmount } from "@/lib/attora";
 import { Field, Input } from "@/components/ui/input";
 import { SealedChip } from "@/components/ui/SealedChip";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
  * a commitment hash + tier, never the size (frontend contract §4 Commit).
  */
 export function CommitPanel() {
-  const { connected, isSepolia, connect, switchNetwork, commit } = useDesk();
+  const { connected, isSepolia, openWalletModal, switchNetwork, commit } = useDesk();
   const [amount, setAmount] = useState("");
 
   const value = Number(amount);
@@ -42,10 +42,10 @@ export function CommitPanel() {
             </p>
             <button
               type="button"
-              onClick={connect}
+              onClick={() => openWalletModal()}
               className="btn-proof mt-4 h-11 px-6 text-sm"
             >
-              Connect wallet
+              connect wallet
             </button>
           </div>
         ) : !isSepolia ? (
@@ -99,7 +99,7 @@ export function CommitPanel() {
               </span>
               {tierPreview && (
                 <span className="font-mono font-medium text-mint">
-                  → {tierPreview.label} · cap {formatAmount(tierPreview.cap)} mUSD
+                  → {tierPreview.label} · cap {formatAmount(tierPreview.cap)} {STABLE_UNIT}
                 </span>
               )}
             </div>

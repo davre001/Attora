@@ -23,6 +23,7 @@ import {
   type ProofJob,
   type Tier,
 } from "@/lib/attora";
+import type { EIP1193Provider } from "@/lib/wallets";
 
 export type Step = "commit" | "prove" | "borrow";
 
@@ -30,19 +31,28 @@ export type Step = "commit" | "prove" | "borrow";
 export interface Balances {
   /** Sepolia ETH — gas on the source chain. */
   eth: number;
-  /** Mock RWA token — collateral on Sepolia. */
-  mrwa: number;
+  /** Tokenized gold — collateral on Sepolia. */
+  gold: number;
+  /** Tokenized NVIDIA equity — collateral on Sepolia. */
+  nvda: number;
+  /** Tokenized US Treasury bills — collateral on Sepolia. */
+  usty: number;
+  /** Tokenized private credit — collateral on Sepolia. */
+  pcr: number;
   /** Creditcoin CTC — gas on CC3. */
   ctc: number;
-  /** Mock stablecoin (mUSD) — borrowable on CC3. */
-  musd: number;
+  /** Ondo Finance USDY — borrowable on CC3. */
+  usdy: number;
 }
 
 const MOCK_BALANCES: Balances = {
   eth: 1.24,
-  mrwa: 12_500,
+  gold: 32,
+  nvda: 60,
+  usty: 15_000,
+  pcr: 25_000,
   ctc: 42.8,
-  musd: 2_500,
+  usdy: 2_500,
 };
 
 const MOCK_ADDRESS = "0x9F4c2b6D8e1A5f30C7bB94a21D6E8f0A3C5d3ac2";
@@ -58,6 +68,12 @@ interface DeskContextValue {
   chainId: number | null;
   isSepolia: boolean;
   isCC3: boolean;
+  /** True while an injected connect request is in flight. */
+  connecting: boolean;
+  /** Wallet-picker modal visibility. */
+  walletModalOpen: boolean;
+  /** Where a successful connect lands (e.g. "/app" from "Open the desk"). */
+  redirectAfterConnect: string | null;
 
   // active commit → prove → borrow flow
   step: Step;
@@ -75,9 +91,13 @@ interface DeskContextValue {
   balances: Balances | null;
 
   // actions
-  connect: () => void;
+  connectInjected: (provider: EIP1193Provider) => Promise<void>;
+  /** Simulated wallet for demoing without an extension. */
+  connectDemo: () => void;
   disconnect: () => void;
   switchNetwork: (id: number) => void;
+  openWalletModal: (redirect?: string) => void;
+  closeWalletModal: () => void;
   commit: (amount: number) => void;
   openLoan: () => void;
   draw: () => void;
@@ -94,6 +114,11 @@ export function DeskProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [redirectAfterConnect, setRedirectAfterConnect] = useState<string | null>(
+    null,
+  );
 
   const [step, setStep] = useState<Step>("commit");
   const [tier, setTier] = useState<Tier | null>(null);
@@ -121,7 +146,70 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const connect = useCallback(() => {
+  /** Active injected provider + its event handlers, for detach on disconnect. */
+  const providerRef = useRef<EIP1193Provider | null>(null);
+  const walletHandlersRef = useRef<{
+    accounts: (accounts: string[]) => void;
+    chain: (chainIdHex: string) => void;
+  } | null>(null);
+
+  const detachWalletListeners = useCallback(() => {
+    const provider = providerRef.current;
+    const handlers = walletHandlersRef.current;
+    if (provider && handlers) {
+      provider.removeListener?.("accountsChanged", handlers.accounts);
+      provider.removeListener?.("chainChanged", handlers.chain);
+    }
+    walletHandlersRef.current = null;
+    providerRef.current = null;
+  }, []);
+
+  // disconnect() is referenced from inside connectInjected's listener closure;
+  // a ref keeps the delegation stable without a dependency cycle.
+  const disconnectRef = useRef<() => void>(() => undefined);
+
+  /** Connect through a real injected EIP-1193 provider (MetaMask / Rabby /
+   *  Phantom / any browser wallet). Throws on user rejection. */
+  const connectInjected = useCallback(
+    async (provider: EIP1193Provider) => {
+      setConnecting(true);
+      try {
+        const accounts = (await provider.request({
+          method: "eth_requestAccounts",
+        })) as string[];
+        if (!accounts?.length) throw new Error("No accounts returned");
+        const chainIdHex = (await provider.request({
+          method: "eth_chainId",
+        })) as string;
+
+        detachWalletListeners();
+        providerRef.current = provider;
+        const onAccounts = (next: string[]) => {
+          if (next.length === 0) {
+            disconnectRef.current();
+          } else {
+            setAddress(next[0]);
+          }
+        };
+        const onChain = (hex: string) => setChainId(parseInt(hex, 16));
+        walletHandlersRef.current = { accounts: onAccounts, chain: onChain };
+        provider.on?.("accountsChanged", onAccounts);
+        provider.on?.("chainChanged", onChain);
+
+        setConnected(true);
+        setAddress(accounts[0]);
+        setChainId(parseInt(chainIdHex, 16));
+        setBalances(MOCK_BALANCES);
+      } finally {
+        setConnecting(false);
+      }
+    },
+    [detachWalletListeners],
+  );
+
+  /** Simulated wallet — keeps the mock-first demo usable without any
+   *  extension installed. */
+  const connectDemo = useCallback(() => {
     setConnected(true);
     setAddress(MOCK_ADDRESS);
     setChainId((cur) => cur ?? SEPOLIA.id);
@@ -129,13 +217,34 @@ export function DeskProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disconnect = useCallback(() => {
+    detachWalletListeners();
     setConnected(false);
     setAddress(null);
     setChainId(null);
     setBalances(null);
+  }, [detachWalletListeners]);
+
+  disconnectRef.current = disconnect;
+
+  const switchNetwork = useCallback((id: number) => {
+    // Ask the wallet to switch; the mock ledger follows either way.
+    providerRef.current
+      ?.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${id.toString(16)}` }],
+      })
+      .catch(() => undefined); // rejection / unknown chain — state still moves
+    setChainId(id);
   }, []);
 
-  const switchNetwork = useCallback((id: number) => setChainId(id), []);
+  const openWalletModal = useCallback((redirect?: string) => {
+    setRedirectAfterConnect(redirect ?? null);
+    setWalletModalOpen(true);
+  }, []);
+  const closeWalletModal = useCallback(() => {
+    setWalletModalOpen(false);
+    setRedirectAfterConnect(null);
+  }, []);
 
   /** Credit a faucet mint into the wallet balances. */
   const mint = useCallback((token: keyof Balances, amount: number) => {
@@ -244,9 +353,9 @@ export function DeskProvider({ children }: { children: ReactNode }) {
       setPositions((list) =>
         list.map((l) => (l.loanId === loanId ? { ...l, debt: l.cap } : l)),
       );
-      // Drawing mints mUSD into the wallet.
+      // Drawing mints USDY into the wallet.
       if (delta > 0) {
-        setBalances((b) => (b ? { ...b, musd: b.musd + delta } : b));
+        setBalances((b) => (b ? { ...b, usdy: b.usdy + delta } : b));
       }
     },
     [positions],
@@ -261,10 +370,10 @@ export function DeskProvider({ children }: { children: ReactNode }) {
           l.loanId === loanId ? { ...l, debt: 0, status: "repaid" } : l,
         ),
       );
-      // Repaying burns mUSD from the wallet (floored at 0 in the mock).
+      // Repaying burns USDY from the wallet (floored at 0 in the mock).
       if (loan.debt > 0) {
         setBalances((b) =>
-          b ? { ...b, musd: Math.max(0, b.musd - loan.debt) } : b,
+          b ? { ...b, usdy: Math.max(0, b.usdy - loan.debt) } : b,
         );
       }
     },
@@ -282,6 +391,9 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     chainId,
     isSepolia: chainId === SEPOLIA.id,
     isCC3: chainId === CC3.id,
+    connecting,
+    walletModalOpen,
+    redirectAfterConnect,
     step,
     tier,
     job,
@@ -291,9 +403,12 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     positions,
     proofs,
     balances,
-    connect,
+    connectInjected,
+    connectDemo,
     disconnect,
     switchNetwork,
+    openWalletModal,
+    closeWalletModal,
     commit,
     openLoan,
     draw,

@@ -2,30 +2,47 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Check, Coins, Droplets, Loader2, Sparkles } from "lucide-react";
-import { useDesk } from "@/store/desk";
+import { ArrowLeft, ArrowUpRight, Briefcase, Check, Coins, Cpu, DollarSign, Droplets, Landmark, Loader2, Sparkles } from "lucide-react";
+import { useDesk, type Balances } from "@/store/desk";
 import { CC3, FAUCETS, SEPOLIA, STABLE_UNIT } from "@/config/chains";
-import { mockTxHash } from "@/lib/attora";
+import { formatAmount, mockTxHash } from "@/lib/attora";
 import { Card } from "@/components/ui/card";
 import { Hash } from "@/components/ui/Hash";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
+
+/** Balance shown on every tile — null = masked (wallet not connected). */
+interface TileBalance {
+  value: number | null;
+  symbol: string;
+}
+
+/** Gas balances carry decimals; token balances are whole test units. */
+function fmtBalance(n: number): string {
+  return n >= 1_000
+    ? formatAmount(n)
+    : n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
 
 function TileShell({
   icon,
   badge,
   title,
   subtitle,
+  balance,
+  className,
   children,
 }: {
   icon: React.ReactNode;
   badge?: string;
   title: string;
   subtitle: string;
+  balance?: TileBalance;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card hover className="flex animate-fade-up flex-col p-6 border border-white/[0.08] transition-all duration-300">
+    <Card hover className={cn("flex animate-fade-up flex-col p-6 border border-white/[0.08] transition-all duration-300", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-mint shadow-inner">
@@ -44,7 +61,24 @@ function TileShell({
           </span>
         )}
       </div>
-      <div className="mt-6 pt-2">{children}</div>
+      <div className="mt-6 pt-2">
+        {balance && (
+          <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-mist">
+              Available balance
+            </span>
+            {balance.value === null ? (
+              <span className="font-mono text-sm text-mist/40">••••••</span>
+            ) : (
+              <span className="font-mono text-sm text-snow">
+                {fmtBalance(balance.value)}
+                <span className="ml-1 text-mist">{balance.symbol}</span>
+              </span>
+            )}
+          </div>
+        )}
+        {children}
+      </div>
     </Card>
   );
 }
@@ -56,6 +90,8 @@ function LinkTile({
   subtitle,
   href,
   cta,
+  balance,
+  className,
 }: {
   icon: React.ReactNode;
   badge?: string;
@@ -63,9 +99,11 @@ function LinkTile({
   subtitle: string;
   href: string;
   cta: string;
+  balance?: TileBalance;
+  className?: string;
 }) {
   return (
-    <TileShell icon={icon} badge={badge} title={title} subtitle={subtitle}>
+    <TileShell icon={icon} badge={badge} title={title} subtitle={subtitle} balance={balance} className={className}>
       <a
         href={href}
         target="_blank"
@@ -88,6 +126,8 @@ function MintTile({
   token,
   tokenKey,
   amount,
+  balance,
+  className,
 }: {
   icon: React.ReactNode;
   badge?: string;
@@ -95,10 +135,12 @@ function MintTile({
   subtitle: string;
   chain: typeof SEPOLIA | typeof CC3;
   token: string;
-  tokenKey: "mrwa" | "musd";
+  tokenKey: keyof Balances;
   amount: number;
+  balance?: TileBalance;
+  className?: string;
 }) {
-  const { connected, chainId, connect, switchNetwork, mint } = useDesk();
+  const { connected, chainId, openWalletModal, switchNetwork, mint } = useDesk();
   const [txHash, setTxHash] = useState<string | null>(null);
   const [minting, setMinting] = useState(false);
   const onChain = chainId === chain.id;
@@ -117,10 +159,10 @@ function MintTile({
     action = (
       <button
         type="button"
-        onClick={connect}
+        onClick={() => openWalletModal()}
         className="btn-glass h-11 w-full text-sm font-medium transition-all active:scale-[0.98]"
       >
-        Connect wallet to mint
+        connect wallet to mint
       </button>
     );
   } else if (!onChain) {
@@ -157,7 +199,7 @@ function MintTile({
   }
 
   return (
-    <TileShell icon={icon} badge={badge} title={title} subtitle={subtitle}>
+    <TileShell icon={icon} badge={badge} title={title} subtitle={subtitle} balance={balance} className={className}>
       {txHash ? (
         <div className="flex flex-col gap-2.5 rounded-xl border border-mint/20 bg-mint/[0.05] p-3.5">
           <span className="inline-flex items-center gap-1.5 font-medium text-xs text-mint">
@@ -179,13 +221,21 @@ function MintTile({
 }
 
 export default function Faucet() {
+  const { connected, balances } = useDesk();
+
+  /** Per-tile balance — masked until a wallet is connected. */
+  const bal = (key: keyof Balances, symbol: string): TileBalance => ({
+    value: connected && balances ? balances[key] : null,
+    symbol,
+  });
+
   return (
     <section className="container py-10 lg:py-14">
       <div className="mx-auto max-w-desk">
         <PageHeader
           kicker="05 · FAUCET"
           title="Faucet"
-          description="Testnet asset dispenser. Request Sepolia ETH, Creditcoin CTC, and mint mock RWA tokens to test confidential commitments."
+          description="Testnet asset dispenser. Request Sepolia ETH, Creditcoin CTC, and mint testnet RWA collateral to test confidential commitments."
         />
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -196,16 +246,7 @@ export default function Faucet() {
             subtitle="Native gas token for locking RWA assets on Ethereum."
             href={FAUCETS.sepoliaEth}
             cta="Open Sepolia Faucet"
-          />
-          <MintTile
-            icon={<Coins className="size-5" />}
-            badge="Sepolia"
-            title="Mock RWA Token"
-            subtitle="Collateral token used to create confidential commitments."
-            chain={SEPOLIA}
-            token="mRWA"
-            tokenKey="mrwa"
-            amount={10000}
+            balance={bal("eth", "ETH")}
           />
           <LinkTile
             icon={<Droplets className="size-5" />}
@@ -214,16 +255,62 @@ export default function Faucet() {
             subtitle="Native gas token for settlement and ASC operations on CC3."
             href={FAUCETS.cc3Ctc}
             cta="Open CC3 Faucet"
+            balance={bal("ctc", "CTC")}
           />
           <MintTile
             icon={<Coins className="size-5" />}
+            badge="Sepolia"
+            title="Gold"
+            subtitle="Tokenized gold collateral used to create confidential commitments."
+            chain={SEPOLIA}
+            token="XAU"
+            tokenKey="gold"
+            amount={10}
+            balance={bal("gold", "XAU")}
+          />
+          <MintTile
+            icon={<Cpu className="size-5" />}
+            badge="Sepolia"
+            title="NVIDIA"
+            subtitle="Tokenized equity collateral used to create confidential commitments."
+            chain={SEPOLIA}
+            token="NVDA"
+            tokenKey="nvda"
+            amount={25}
+            balance={bal("nvda", "NVDA")}
+          />
+          <MintTile
+            icon={<Landmark className="size-5" />}
+            badge="Sepolia"
+            title="US Treasury"
+            subtitle="Tokenized Treasury bill collateral used to create confidential commitments."
+            chain={SEPOLIA}
+            token="USTY"
+            tokenKey="usty"
+            amount={10_000}
+            balance={bal("usty", "USTY")}
+          />
+          <MintTile
+            icon={<Briefcase className="size-5" />}
+            badge="Sepolia"
+            title="Private Credit"
+            subtitle="Tokenized private credit collateral used to create confidential commitments."
+            chain={SEPOLIA}
+            token="PCRD"
+            tokenKey="pcr"
+            amount={25_000}
+            balance={bal("pcr", "PCRD")}
+          />
+          <MintTile
+            icon={<DollarSign className="size-5" />}
             badge="Creditcoin CC3"
-            title={`Mock ${STABLE_UNIT}`}
-            subtitle="Stablecoin liquidity drawn against attested locks."
+            title={`Ondo Finance (${STABLE_UNIT})`}
+            subtitle="Yield-bearing dollar liquidity drawn against attested locks."
             chain={CC3}
             token={STABLE_UNIT}
-            tokenKey="musd"
-            amount={50000}
+            tokenKey="usdy"
+            amount={50_000}
+            balance={bal("usdy", STABLE_UNIT)}
           />
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Boxes, Coins, Droplets, Gem, Wallet } from "lucide-react";
+import { Briefcase, Coins, Cpu, DollarSign, Droplets, Gem, Landmark, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useDesk, type Balances } from "@/store/desk";
 import { CC3, SEPOLIA, STABLE_UNIT } from "@/config/chains";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * Portfolio — the first page after login. Wallet holdings for every token in
  * the system, across both chains, in a horizontal grid. These are *wallet*
  * balances only: the sealed collateral amount never appears anywhere (§9 —
- * even an mRWA balance delta on commit would leak the size, so the store
+ * even a collateral balance delta on commit would leak the size, so the store
  * deliberately leaves balances untouched by commit()).
  */
 
@@ -29,9 +29,12 @@ const TOKENS: Array<{
   price: number;
 }> = [
   { key: "eth", symbol: "ETH", name: "Sepolia Ether", role: "Gas", chain: SEPOLIA, icon: Droplets, price: 2_850 },
-  { key: "mrwa", symbol: "mRWA", name: "Mock RWA", role: "Collateral", chain: SEPOLIA, icon: Boxes, price: 1 },
   { key: "ctc", symbol: "CTC", name: "Creditcoin", role: "Gas", chain: CC3, icon: Gem, price: 0.85 },
-  { key: "musd", symbol: STABLE_UNIT, name: "Mock stable", role: "Borrowable", chain: CC3, icon: Coins, price: 1 },
+  { key: "gold", symbol: "XAU", name: "Gold", role: "Collateral", chain: SEPOLIA, icon: Coins, price: 2_900 },
+  { key: "nvda", symbol: "NVDA", name: "NVIDIA", role: "Collateral", chain: SEPOLIA, icon: Cpu, price: 180 },
+  { key: "usty", symbol: "USTY", name: "US Treasury", role: "Collateral", chain: SEPOLIA, icon: Landmark, price: 1 },
+  { key: "pcr", symbol: "PCRD", name: "Private Credit", role: "Collateral", chain: SEPOLIA, icon: Briefcase, price: 1 },
+  { key: "usdy", symbol: STABLE_UNIT, name: "Ondo Finance", role: "Borrowable", chain: CC3, icon: DollarSign, price: 1 },
 ];
 
 /** Gas balances carry decimals; token balances are whole test units. */
@@ -117,7 +120,7 @@ function TokenRow({
 }
 
 export default function Portfolio() {
-  const { connected, address, balances, tier, connect } = useDesk();
+  const { connected, address, balances, tier, openWalletModal } = useDesk();
 
   return (
     <section className="container py-10 lg:py-14">
@@ -143,11 +146,11 @@ export default function Portfolio() {
               </p>
               <button
                 type="button"
-                onClick={connect}
-                className="btn-glass inline-flex h-9 items-center gap-2 rounded-full px-4 font-mono text-xs font-medium transition-all duration-200 active:scale-95"
+                onClick={() => openWalletModal()}
+                className="btn-glass inline-flex h-9 items-center gap-2 rounded-[14px] px-4 font-body text-sm font-light transition-all duration-200 active:scale-95"
               >
                 <Wallet className="size-3.5 text-mist" />
-                Connect wallet
+                connect wallet
               </button>
             </>
           )}
@@ -183,7 +186,7 @@ export default function Portfolio() {
                 <td className="hidden sm:table-cell" />
                 <td className="hidden md:table-cell" />
                 <td className={cn(td, "text-right font-mono text-[10px] uppercase tracking-[0.14em] text-mist/70")}>
-                  4 assets
+                  {TOKENS.length} assets
                 </td>
                 <td className={cn(td, "text-right")}>
                   {connected && balances ? (

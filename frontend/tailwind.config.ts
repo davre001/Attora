@@ -61,27 +61,27 @@ export default {
         snow: "var(--snow)",
         sealed: "var(--sealed)",
         warn: "#E8B84A",
-        danger: "#F07167",
-        // proof accents — mint → sand, matched to the Mesh-drift shader
-        mint: "#94D2BD",
-        sand: "#E9D8A6",
-        "proof-from": "#94D2BD",
-        "proof-to": "#E9D8A6",
+        danger: "#FF6467",
+        // proof accents — the 21st.dev blue chart ramp (chart-1 → chart-2)
+        mint: "#91C5FF",
+        sand: "#3A81F6",
+        "proof-from": "#91C5FF",
+        "proof-to": "#3A81F6",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 6px)",
         sm: "calc(var(--radius) - 8px)",
-        card: "20px",
+        card: "16px",
         btn: "14px",
         input: "12px",
       },
       fontFamily: {
         // next/font generates hashed family names — target its CSS variables
-        display: ["var(--font-instrument)", "Instrument Sans", "system-ui", "sans-serif"],
-        body: ["var(--font-plex-sans)", "IBM Plex Sans", "system-ui", "sans-serif"],
-        sans: ["var(--font-plex-sans)", "IBM Plex Sans", "system-ui", "sans-serif"],
-        mono: ["var(--font-plex-mono)", "IBM Plex Mono", "ui-monospace", "monospace"],
+        display: ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+        body: ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+        sans: ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "Geist Mono", "ui-monospace", "monospace"],
       },
       maxWidth: {
         desk: "1080px",
@@ -90,7 +90,7 @@ export default {
         institutional: "cubic-bezier(0.16, 1, 0.3, 1)",
       },
       backgroundImage: {
-        proof: "linear-gradient(135deg, #94d2bd 0%, #e9d8a6 100%)",
+        proof: "linear-gradient(135deg, #91c5ff 0%, #3a81f6 100%)",
       },
       keyframes: {
         "fade-up": {

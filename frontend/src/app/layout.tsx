@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Sans, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { DM_Sans, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 import { Providers } from "./providers";
@@ -7,21 +7,14 @@ import { GradientBackground } from "@/components/layout/GradientBackground";
 import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
 
-const display = Instrument_Sans({
+const sans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-instrument",
+  variable: "--font-dm-sans",
   display: "swap",
 });
-const body = IBM_Plex_Sans({
+const mono = Geist_Mono({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-plex-sans",
-  display: "swap",
-});
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-plex-mono",
+  variable: "--font-geist-mono",
   display: "swap",
 });
 
@@ -39,7 +32,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${display.variable} ${body.variable} ${mono.variable}`}
+      className={`dark ${sans.variable} ${mono.variable}`}
     >
       <body>
         <Providers>

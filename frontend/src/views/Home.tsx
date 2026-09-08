@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useDesk } from "@/store/desk";
 import { Button } from "@/components/ui/button";
 import {
   HeroColorPanelsRoot,
@@ -30,6 +33,8 @@ const STEPS = [
 ];
 
 export default function Home() {
+  const { connected, openWalletModal } = useDesk();
+
   return (
     <>
       <HeroColorPanelsRoot
@@ -42,13 +47,23 @@ export default function Home() {
             <HeroColorPanelsDescription />
             <HeroColorPanelsActions>
               <div className="flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
-                <Button
-                  asChild
-                  size="lg"
-                  className="btn-proof h-12 px-7 text-[15px] hover:opacity-95"
-                >
-                  <Link href="/app">Open the desk</Link>
-                </Button>
+                {connected ? (
+                  <Button
+                    asChild
+                    size="lg"
+                    className="btn-proof h-12 px-7 text-[15px] hover:opacity-95"
+                  >
+                    <Link href="/app">Open the desk</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="btn-proof h-12 px-7 text-[15px] hover:opacity-95"
+                    onClick={() => openWalletModal("/app")}
+                  >
+                    Open the desk
+                  </Button>
+                )}
                 <Button
                   asChild
                   variant="ghost"
