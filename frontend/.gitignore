@@ -8,6 +8,7 @@ dist
 dist-ssr
 .next
 next-env.d.ts
+tsconfig.tsbuildinfo
 *.local
 
 # env
