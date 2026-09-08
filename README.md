@@ -2,7 +2,7 @@
 
 **Private RWA lock on Ethereum. Attested fact on Creditcoin. Loan without publishing the book.**
 
-Provex is confidential RWA credit for the Creditcoin Attestcoin stack. Collateral is locked in a confidential vault on Ethereum. The vault does **not** broadcast size or inventory. It emits a commitment / eligibility statement. Attestcoin proves that source-chain statement on Creditcoin. An Attestcoin Smart Contract then opens a loan against the proof — not against a trusted feed, and not against a public position tape.
+Attora is confidential RWA credit for the Creditcoin Attestcoin stack. Collateral is locked in a confidential vault on Ethereum. The vault does **not** broadcast size or inventory. It emits a commitment / eligibility statement. Attestcoin proves that source-chain statement on Creditcoin. An Attestcoin Smart Contract then opens a loan against the proof — not against a trusted feed, and not against a public position tape.
 
 Built for **BUIDL CTC 2026 Fall — BUIDL For The Real World**.
 
