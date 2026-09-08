@@ -1,924 +1,243 @@
-# Attora
+# Attora — frontend implementation
 
-### Frontend Design Specification
+Final spec for the hackathon UI.
 
-**Attora** is a dark, institutional RWA lending interface designed around one core idea:
-
-> **Keep the asset. Prove the lock. Borrow on Creditcoin.**
-
-The interface should feel like a **private credit desk**, not a casino-style DeFi application.
-
-The design system is intentionally minimal:
-
-- Dark ink canvas
-- One proof gradient
-- Tight typography
-- Generous empty space
-- Strong numerical hierarchy
-- Proof-first interaction
-- No unnecessary DeFi visual noise
+Confidential RWA desk: commit on Ethereum Sepolia, Attestcoin proves the commitment tx, borrow on Creditcoin CC3 by **tier**. The interface must show **sealed size** and **live proofs**. It must not look like a meme DEX.
 
 ---
 
-# 1. Product Identity
+## 1. Product the UI has to express
 
-## Product Name
-
-**Attora**
-
-One-word product identity.
-
-## Visual Direction
-
-**Mood:** Private credit desk.
-
-The UI should communicate:
-
-- Institutional
-- Trustworthy
-- Technical
-- Financial
-- Minimal
-- Proof-driven
-
-It should **not** feel:
-
-- Meme-DeFi
-- Gamified
-- Speculative
-- Overly futuristic
-- Casino-like
-
-### Core visual principle
-
-> **Black canvas + one green-cyan proof line.**
-
-The gradient is an accent, not a background.
+- Amount is entered locally and used to build a commitment.  
+- On-chain event is `CollateralCommitted(borrower, loanId, commitment, tier)` — no raw size.  
+- Loan on CC3 cannot open without a BlockProver-ready proof.  
+- Positions show **tier + debt**, never source inventory.  
+- Faucet exists so the demo can mint test assets on both chains.
 
 ---
 
-# 2. Design System
+## 2. Visual system
 
-## Colors
+### Mood
 
-| Token | Hex | Usage |
+Private credit office. Flat black, one proof gradient, one sealed violet. No wash, no glow on every card.
+
+### Color
+
+| Token | Hex | Role |
 |---|---|---|
-| `ink` | `#07080A` | Page background |
-| `ink-2` | `#0E1014` | Cards / panels |
-| `line` | `#1C2129` | Borders |
-| `mist` | `#8B93A1` | Secondary text |
-| `snow` | `#F4F6F8` | Headings / numbers |
-| `proof-from` | `#12E6A5` | Gradient start |
-| `proof-to` | `#3B82F6` | Gradient end |
-| `warn` | `#E8B84A` | Wrong network |
-| `danger` | `#F07167` | Errors / liquidation |
-
-## Signature Gradient
-
-Use the signature gradient **only** for:
-
-- Primary CTAs
-- Active stepper elements
-- Logo / brand mark
+| `ink` | `#07080A` | page background |
+| `ink-2` | `#0E1014` | cards |
+| `ink-3` | `#14181F` | inputs, nested rows |
+| `line` | `#1C2129` | borders |
+| `mist` | `#8B93A1` | secondary text |
+| `snow` | `#F4F6F8` | headings, numbers |
+| `sealed` | `#A78BFA` | hidden / commitment chips |
+| `proof-from` | `#12E6A5` | gradient start |
+| `proof-to` | `#3B82F6` | gradient end |
+| `warn` | `#E8B84A` | wrong network |
+| `danger` | `#F07167` | failed proof / revert |
 
 ```css
---proof: linear-gradient(
-  135deg,
-  #12E6A5 0%,
-  #3B82F6 100%
-);
+--proof: linear-gradient(135deg, #12E6A5 0%, #3B82F6 100%);
 ```
 
-### Important
+Use `--proof` only on: primary CTA, active stepper segment, logo mark, `READY` dot.  
+Home may use a single radial of `--proof` at 8% opacity behind the mark. Nothing else.
 
-Do **not** wash the entire page in gradient.
+### Type
 
-The background must remain:
+| Role | Font | Weight | Notes |
+|---|---|---|---|
+| Display, big numbers | Instrument Sans | 500 / 600 | tracking `-0.03em` |
+| Body, nav, labels | IBM Plex Sans | 400 / 500 | 14–16px, line-height 1.5 |
+| Hashes, proofs, chainKey | IBM Plex Mono | 400 | 13px, color `mist` |
 
-```css
-#07080A
+```
+https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500&family=Instrument+Sans:wght@500;600&display=swap
 ```
 
-An optional **8% radial glow** may be placed behind the hero mark only.
+### Shape and space
+
+- Max width `1080px`
+- Nav `64px`
+- Card radius `20px`, padding `28px`
+- Button height `48px`, radius `14px`
+- Input radius `12px`
+- Section gap `32px`
+- Border `1px solid var(--line)`, no drop shadow
+- Hover card border only: `#2A3340`
+- Motion: `180ms ease-out`; step change fade + `8px` up
 
 ---
 
-# 3. Typography
+## 3. Routes (6)
 
-## Display / Numbers
-
-**Instrument Sans**
-
-Alternative:
-
-**Geist**
-
-Weights:
-
-- 500
-- 600
-
-Large figures should use:
-
-```css
-letter-spacing: -0.03em;
-```
-
-Used for:
-
-- H1
-- H2
-- Large numbers
-- Loan amounts
-- LTV
-- Key metrics
-
-## Body / UI
-
-**IBM Plex Sans**
-
-Weights:
-
-- 400
-- 500
-
-Recommended:
-
-```text
-Font size: 14–16px
-Line height: 1.5
-```
-
-## Monospace
-
-**IBM Plex Mono**
-
-Used for:
-
-- Transaction hashes
-- Proof data
-- `chainKey`
-- Block heights
-- Technical identifiers
-- Proof statuses
-
-Recommended:
-
-```text
-Font size: 13px
-Weight: 400
-```
-
-## Google Fonts
-
-```css
-@import url(
-  "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500&family=Instrument+Sans:wght@500;600&display=swap"
-);
-```
-
----
-
-# 4. Spacing & Shape
-
-| Element | Specification |
-|---|---:|
-| Cards | `20px` radius |
-| Buttons | `14px` radius |
-| Inputs | `12px` radius |
-| Maximum page width | `1080px` |
-| Section gap | `32px` |
-| Card padding | `28px` |
-
-## Cards
-
-Cards should have:
-
-- No drop shadow
-- `1px` border
-- `#0E1014` background
-- `20px` radius
-
-Default border:
-
-```css
-border: 1px solid #1C2129;
-```
-
-Hover border:
-
-```css
-#2A3340
-```
-
----
-
-# 5. Motion
-
-Motion should feel controlled and institutional.
-
-### Hover
-
-```text
-180ms ease-out
-```
-
-### Step transitions
-
-Use:
-
-```text
-Fade + 8px upward movement
-```
-
-### Avoid
-
-- Bounce animations
-- Confetti
-- Excessive parallax
-- Spinning crypto graphics
-- Overly animated dashboards
-
----
-
-# 6. Application Structure
-
-Attora should contain **exactly five pages**.
-
-| Route | Page | Purpose |
+| Route | Page | Job |
 |---|---|---|
-| `/` | Home | One claim + start demo |
-| `/app` | Desk | Lock → Prove → Borrow |
-| `/positions` | Positions | Open loans, LTV, repayment |
-| `/proofs` | Proofs | Attestcoin receipts |
-| `/docs` | How it works | Hackathon explainer |
+| `/` | Home | Pitch |
+| `/app` | Desk | Commit → prove → borrow |
+| `/positions` | Positions | Open loans |
+| `/proofs` | Proofs | Judge-facing receipts |
+| `/faucet` | Faucet | Testnet gas + mocks |
+| `/docs` | Docs | Hidden vs public + addresses |
 
-## Explicitly excluded
-
-Do **not** build:
-
-- Marketplace
-- Blog
-- Token page
-- Yield dashboard
-- Governance page
-- Community page
-- Multi-page documentation portal
-
-The hackathon product should remain focused.
+Nav order: **Desk · Positions · Proofs · Faucet · Docs · Connect**
 
 ---
 
-# 7. Navigation
+## 4. Pages
 
-## Top Navigation
+### `/` Home
 
-Height:
+- Mark + wordmark left. Connect right.  
+- **H1:** Hide the size. Prove the lock. Borrow.  
+- **Sub:** RWA stays in a confidential vault on Ethereum. Creditcoin only receives an Attestcoin proof of the commitment.  
+- **Open the desk** (`btn-proof`) · **Inspect a proof** (ghost)  
+- Three tiles: Commit on Sepolia · Attestcoin verifies · Loan by tier on CC3  
+- Footer: Sepolia + CC3 testnet. No mainnet value.
 
-```text
-64px
-```
+### `/app` Desk
 
-Structure:
+Main product. Stepper + panel + right rail.
 
-```text
-[Attora Mark]   App   Proofs   Docs                     Connect
-```
+Stepper labels: **01 Commit** · **02 Prove** · **03 Borrow**  
+Completed bar and active index use `--proof`.
 
-### Logo
+**Commit**
 
-- Mark on the left
-- "Attora" in Instrument Sans
-- Weight 500
+- Amount field (browser only)  
+- `SealedChip`: `AMOUNT HIDDEN ON-CHAIN`  
+- CTA: **Commit collateral** (requires Sepolia)  
+- After tx: `loanId` + truncated `commitment` in mono. Do not reprint amount.
 
-### Navigation links
+**Prove**
 
-Default:
+- Poll worker: `pending` → `attested` → `ready` | `error`  
+- Show source tx, `chainKey 1`, `blockHeight`  
+- Line: Creditcoin cannot be told. It can only be shown.  
+- Borrow disabled until `ready`
 
-```text
-#8B93A1
-```
+**Borrow**
 
-Active:
+- Requires CC3  
+- Show **tier** and **max draw** only  
+- **Open loan with proof** then **Draw**  
+- On revert, show reason in `danger`
 
-- Snow text
-- 2px gradient underline
+Right rail: network badge, `loanId`, tier, commitment preview, wallet.
 
-### Connect
+Wrong chain: gold `NetworkBanner`, not a dead button.
 
-Small ghost pill.
+### `/positions`
 
-Transparent background with:
+Cards: `loanId` · tier · debt · cap · status · Draw / Repay  
+Forbidden: `collateral: 10000`.  
+Empty: Nothing proven yet.
 
-```css
-border: 1px solid #1C2129;
-```
+### `/proofs`
 
----
+Terminal-in-a-card.
 
-# 8. Brand Mark
+List: Sepolia tx · block · `chainKey` · `READY` / pending  
+Detail: commitment, encodedTx, merkle, continuity — copy, truncated.  
+Violet `SEALED` if payload has no amount.
 
-The Attora mark should be:
+### `/faucet`
 
-- `20 × 20px`
-- Rounded square
-- Filled with the proof gradient
-- White `A`, proof/check, or lock-check symbol
+Four tiles, same card style:
 
-Example conceptual direction:
+1. Sepolia ETH — outbound link to public faucet  
+2. MockRWA — `mint` to connected wallet on Sepolia  
+3. CC3 CTC — link to official Creditcoin test faucet  
+4. MockStable — `mint` on CC3  
 
-```text
-┌──────┐
-│  ✓   │
-└──────┘
-```
+Each tile has its own switch-network control.  
+Foot: Testnet only.  
+Ghost: **Back to desk**
 
-The mark should communicate:
+### `/docs`
 
-**Asset → Proof → Credit**
+Four blocks:
 
-without becoming visually complicated.
-
----
-
-# 9. Page 1 — Home
-
-### Route
-
-```text
-/
-```
-
-### Purpose
-
-Introduce the core proposition and immediately move users into the demo.
+1. Problem — public RWA books leak  
+2. Flow — commit → attest → openLoan  
+3. Table — hidden vs public  
+4. Addresses — vault, LoanBook, BlockProver `0x…0FD2`, decoder, chainIds  
 
 ---
 
-## Hero
+## 5. File tree
 
-### H1
-
-> **Keep the asset. Prove the lock. Borrow on Creditcoin.**
-
-### Subheading
-
-> RWA collateral stays on Ethereum. Creditcoin only sees an Attestcoin proof.
-
-### Primary CTA
-
-**Open the desk**
-
-Gradient button.
-
-### Secondary CTA
-
-**See a proof**
-
-Ghost button.
-
----
-
-## Hero Tiles
-
-Three compact tiles:
-
-### 01 — Lock
-
-**Lock on Sepolia**
-
-The RWA remains on Ethereum.
-
-### 02 — Prove
-
-**Attestcoin verifies**
-
-The collateral lock is cryptographically proven.
-
-### 03 — Borrow
-
-**Loan opens on CC3**
-
-Creditcoin opens the loan against verified collateral.
-
----
-
-## Footer
-
-Include a concise testnet disclaimer.
-
-Example:
-
-```text
-Attora is a testnet hackathon prototype.
-Do not deposit real assets.
 ```
-
----
-
-# 10. Page 2 — Desk
-
-### Route
-
-```text
-/app
-```
-
-This is the **main product experience**.
-
-The entire lending flow should exist on one page.
-
----
-
-# Stepper
-
-Place the stepper at the top:
-
-```text
-01 Lock  ─────  02 Prove  ─────  03 Borrow
-```
-
-### Inactive
-
-```text
-color: #8B93A1
-```
-
-### Active
-
-Number sits inside a:
-
-```text
-28px circle
-```
-
-with the proof gradient.
-
-### Completed steps
-
-Connected using:
-
-```text
-2px gradient bar
-```
-
----
-
-# Desk Layout
-
-Desktop:
-
-```text
-┌─────────────────────────────────────────────┐
-│                 STEPPER                     │
-├──────────────────────────┬──────────────────┤
-│                          │                  │
-│      ACTIVE PANEL        │    RIGHT RAIL    │
-│                          │                  │
-│                          │ Chain            │
-│                          │ Loan ID          │
-│                          │ LTV              │
-│                          │ Wallet           │
-│                          │                  │
-└──────────────────────────┴──────────────────┘
-```
-
-Single-column flow on mobile.
-
----
-
-# Lock Panel
-
-Copy:
-
-> **Collateral stays on Ethereum.**
-
-The user selects:
-
-- RWA asset
-- Amount
-- Loan ID
-
-Then locks the collateral in `SourceVault`.
-
-Primary action:
-
-**Lock collateral**
-
----
-
-# Proof Panel
-
-Copy:
-
-> **Waiting on Attestcoin. Creditcoin cannot be told — only shown.**
-
-Display:
-
-- Source transaction
-- Block height
-- Chain key
-- Proof status
-- Attestation status
-
-Ready state:
-
-```text
-● READY
-```
-
-The dot uses the signature gradient.
-
-Status text uses:
-
-```text
-IBM Plex Mono
-```
-
----
-
-# Borrow Panel
-
-Copy:
-
-> **Switch to Creditcoin. Open the loan with the proof.**
-
-Primary action:
-
-**Open loan**
-
-The transaction should only succeed when BlockProver verifies the source-chain collateral event.
-
----
-
-# Right Rail
-
-Show:
-
-```text
-CHAIN
-Ethereum Sepolia
-
-LOAN ID
-0x••••••••
-
-LTV
-50%
-
-WALLET
-0x••••...••••
-```
-
-Keep this panel compact.
-
----
-
-# Wrong Network
-
-Wrong network must use **warning gold**, not red.
-
-Color:
-
-```css
-#E8B84A
-```
-
-Background:
-
-```css
-#2A2108
-```
-
-Example:
-
-```text
-Wrong network
-
-Switch to Creditcoin CC3
-```
-
-Primary action:
-
-**Switch network**
-
----
-
-# 11. Page 3 — Positions
-
-### Route
-
-```text
-/positions
-```
-
-Purpose:
-
-Show the user's proven loans.
-
----
-
-## Position Fields
-
-Display:
-
-| Field | Description |
-|---|---|
-| Loan ID | Unique loan identifier |
-| Collateral | Verified collateral |
-| Debt | Current borrowed amount |
-| LTV | Current loan-to-value |
-| Status | Loan state |
-| Action | Draw / Repay |
-
-Possible actions:
-
-```text
-Draw
-Repay
-```
-
----
-
-## Empty State
-
-When no loans exist:
-
-> **Nothing proven yet.**
-
-Avoid overly elaborate illustrations.
-
-The empty state should remain minimal.
-
----
-
-# 12. Page 4 — Proofs
-
-### Route
-
-```text
-/proofs
-```
-
-This page is primarily for **judges and technical reviewers**.
-
-It should feel like a **terminal inside an institutional card**.
-
----
-
-# Proof List
-
-Each proof job displays:
-
-```text
-Sepolia TX
-blockHeight
-chainKey: 1
-status
-```
-
-Example:
-
-```text
-Sepolia TX
-0x84c1...91af
-
-blockHeight
-8,421,932
-
-chainKey
-1
-
-status
-● READY
-```
-
----
-
-# Proof Detail
-
-When a proof is opened, show:
-
-### Encoded Transaction
-
-```text
-0x02f8...
-```
-
-Truncated by default.
-
-Include:
-
-**Copy**
-
-button.
-
-### Merkle Proof
-
-Display proof data in monospace.
-
-Include:
-
-**Copy**
-
-button.
-
-### Continuity Proof
-
-Display proof data in monospace.
-
-Include:
-
-**Copy**
-
-button.
-
----
-
-## Proof Page Principle
-
-This page should visually communicate:
-
-> **This is evidence, not a dashboard.**
-
-Avoid charts and decorative widgets.
-
----
-
-# 13. Page 5 — Docs
-
-### Route
-
-```text
-/docs
-```
-
-The docs page should fit the hackathon context.
-
-**No long essay.**
-
-Use only four blocks.
-
----
-
-## 01 — Problem
-
-Tokenized RWAs live on Ethereum while Creditcoin provides credit infrastructure.
-
-Attora connects the two without requiring the RWA to move.
-
----
-
-## 02 — Flow
-
-```text
-Lock on Ethereum
-       ↓
-Attestcoin attestation
-       ↓
-Proof generation
-       ↓
-BlockProver verification
-       ↓
-Loan opens on Creditcoin
-```
-
----
-
-## 03 — Why Attestcoin
-
-Attestcoin provides the cryptographic bridge between the source-chain event and the Creditcoin lending transaction.
-
-Creditcoin does not trust a user-submitted collateral value.
-
-It verifies the underlying source-chain event.
-
----
-
-## 04 — Testnet Addresses
-
-Display the relevant:
-
-- Ethereum Sepolia contracts
-- Creditcoin CC3 contracts
-- BlockProver
-- ChainInfo
-- Decoder
-- Proof Builder API
-
-Use monospace formatting for addresses.
-
----
-
-# 14. File Structure
-
-```text
 frontend/
 ├── index.html
 ├── package.json
 ├── vite.config.ts
 ├── tailwind.config.ts
-│
 ├── public/
 │   └── mark.svg
-│
 └── src/
     ├── main.tsx
     ├── App.tsx
     ├── index.css
-    │
     ├── pages/
     │   ├── Home.tsx
     │   ├── Desk.tsx
     │   ├── Positions.tsx
     │   ├── Proofs.tsx
+    │   ├── Faucet.tsx
     │   └── Docs.tsx
-    │
     ├── components/
     │   ├── layout/
     │   │   ├── Nav.tsx
     │   │   ├── Footer.tsx
     │   │   └── Page.tsx
-    │   │
     │   ├── brand/
     │   │   └── Mark.tsx
-    │   │
     │   ├── desk/
     │   │   ├── Stepper.tsx
-    │   │   ├── LockPanel.tsx
+    │   │   ├── CommitPanel.tsx
     │   │   ├── ProofPanel.tsx
     │   │   ├── BorrowPanel.tsx
     │   │   └── NetworkBanner.tsx
-    │   │
     │   └── ui/
     │       ├── Button.tsx
     │       ├── Card.tsx
     │       ├── Input.tsx
     │       ├── Badge.tsx
-    │       └── Hash.tsx
-    │
-    ├── hooks/
-    │   ├── useLock.ts
-    │   ├── useProofJob.ts
-    │   └── useLoanBook.ts
-    │
-    ├── config/
-    │   ├── chains.ts
-    │   ├── contracts.ts
-    │   └── wagmi.ts
-    │
-    ├── abi/
-    │   ├── SourceVault.ts
-    │   └── LoanBook.ts
-    │
-    └── lib/
-        ├── format.ts
-        └── loanId.ts
+    │       ├── Hash.tsx
+    │       └── SealedChip.tsx
 ```
+
+Stack: Vite + React + TS + wagmi/viem + Tailwind. Two chains in one config: Sepolia + CC3 testnet.
 
 ---
 
-# 15. CSS Tokens
-
-Place the following in:
-
-```text
-src/index.css
-```
+## 6. CSS tokens
 
 ```css
-@import url(
-  "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500&family=Instrument+Sans:wght@500;600&display=swap"
-);
-
 :root {
   --ink: #07080a;
   --ink-2: #0e1014;
+  --ink-3: #14181f;
   --line: #1c2129;
   --mist: #8b93a1;
   --snow: #f4f6f8;
-
-  --proof: linear-gradient(
-    135deg,
-    #12e6a5,
-    #3b82f6
-  );
-
+  --sealed: #a78bfa;
+  --proof: linear-gradient(135deg, #12e6a5, #3b82f6);
   --font-display: "Instrument Sans", sans-serif;
   --font-body: "IBM Plex Sans", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
 }
 
-html,
-body,
-#root {
+html, body, #root {
   background: var(--ink);
   color: var(--snow);
   font-family: var(--font-body);
 }
 
-h1,
-h2,
-.num {
+h1, h2, .num {
   font-family: var(--font-display);
   letter-spacing: -0.03em;
 }
@@ -941,300 +260,79 @@ h2,
   border: 1px solid var(--line);
   border-radius: 20px;
 }
+
+.chip-sealed {
+  color: var(--sealed);
+  border: 1px solid color-mix(in srgb, var(--sealed) 35%, transparent);
+  background: color-mix(in srgb, var(--sealed) 10%, transparent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 ```
 
 ---
 
-# 16. Component Styling Rules
+## 7. Components
 
-## Navigation
+**Mark:** 20×20 rounded square, fill `--proof`, white **P**.
 
-```text
-Height: 64px
-Background: transparent
-```
+**Buttons**
 
-Logo:
+- Primary: `.btn-proof`  
+- Ghost: transparent, `line` border, `snow` text  
+- Warn: `#E8B84A` on `#2A2108` (switch network)
 
-```text
-Mark + Attora
-```
+**SealedChip:** `HIDDEN` · `SEALED` · `TIER 2`
 
-Links:
+**Hash:** mono, truncate middle, copy on click.
 
-```text
-Mist
-```
+**Stepper:** three labels. Active index in a 28px gradient circle.
 
-Active:
-
-```text
-Gradient underline
-2px
-```
-
-Connect:
-
-```text
-Small ghost pill
-```
+**Proof READY:** 6px gradient dot + `READY` in mono.
 
 ---
 
-## Primary Button
+## 8. Copy sheet
 
-Use the proof gradient:
-
-```text
---proof
-```
-
-Height:
-
-```text
-48px
-```
-
-In panels:
-
-```text
-width: 100%
-```
-
-Text:
-
-```text
-#06110C
-```
+| Surface | Text |
+|---|---|
+| Home H1 | Hide the size. Prove the lock. Borrow. |
+| Commit | Amount never leaves this browser onto the log. |
+| Prove | Waiting on Attestcoin. Creditcoin cannot be told. |
+| Borrow | Cap is the tier, not the inventory. |
+| Positions empty | Nothing proven yet. |
+| Proofs | Source receipts. Sealed payloads. |
+| Faucet | Testnet fuel for both chains. |
 
 ---
 
-## Ghost Button
+## 9. Data the UI is allowed to show
 
-```text
-background: transparent
-border: 1px solid #1C2129
-color: #F4F6F8
-```
+**Show:** wallet, network, `loanId`, commitment (truncated), tier, tier cap, debt, `chainKey`, blockHeight, proof status, tx hashes.
 
----
+**Never show after commit:** source `amount`, salt in full, “collateral value” on CC3 screens.
 
-## Warning Button
-
-Background:
-
-```text
-#2A2108
-```
-
-Text:
-
-```text
-#E8B84A
-```
-
-Used primarily for network switching.
+If amount is still in the event log, do not badge the page `SEALED`.
 
 ---
 
-## Cards
+## 10. Demo path (video + judging)
 
-```text
-background: #0E1014
-border: 1px solid #1C2129
-border-radius: 20px
-padding: 28px
-```
+1. Faucet → mint MockRWA + MockStable, get gas on both chains  
+2. Desk → Sepolia → Commit  
+3. Prove → `READY` with `chainKey 1` visible  
+4. Switch CC3 → Open loan with proof → Draw  
+5. Positions = tier + debt  
+6. Proofs = same Sepolia tx the contract verified  
 
-No shadows.
-
-Hover:
-
-```text
-border → #2A3340
-```
+`openLoan` must be impossible from the UI without a `ready` proof payload.
 
 ---
 
-# 17. Status System
+## 11. Out of scope
 
-## Proof Ready
+Light mode, extra marketing pages, charts of hidden inventory, fake privacy badges, Inter, pink-purple washes, mainnet.
 
-```text
-● READY
-```
-
-Use:
-
-- Tiny gradient dot
-- `READY` in IBM Plex Mono
-
-## Pending
-
-```text
-● PENDING
-```
-
-Use muted styling.
-
-## Error
-
-```text
-ERROR
-```
-
-Use:
-
-```text
-#F07167
-```
-
-## Liquidatable
-
-Use danger styling:
-
-```text
-#F07167
-```
-
-Do not use red for ordinary network warnings.
-
----
-
-# 18. Content Guidelines
-
-Keep copy short.
-
-## Home
-
-> **Keep the asset. Prove the lock. Borrow.**
-
-## Desk — Lock
-
-> **Collateral stays on Ethereum.**
-
-## Desk — Prove
-
-> **Waiting on Attestcoin. Creditcoin cannot be told — only shown.**
-
-## Desk — Borrow
-
-> **Switch to Creditcoin. Open the loan with the proof.**
-
-## Positions — Empty
-
-> **Nothing proven yet.**
-
-## Proofs
-
-> **Source receipts.**
-
----
-
-# 19. UX Principles
-
-### 1. Proof before credit
-
-The interface should make it visually obvious that the loan depends on proof.
-
-```text
-Collateral
-    ↓
-Proof
-    ↓
-Credit
-```
-
-### 2. Never hide the source chain
-
-Users and judges should always understand where the collateral lives.
-
-### 3. Make technical evidence inspectable
-
-Transaction hashes, block heights, chain keys, Merkle proofs, and continuity proofs should be accessible.
-
-### 4. Keep the interface calm
-
-No visual noise.
-
-No excessive animation.
-
-No unnecessary cards.
-
-### 5. Design for the demo
-
-The user should be able to understand the entire product in seconds.
-
----
-
-# 20. What Not To Do
-
-## ❌ No purple unicorn gradients
-
-The only signature gradient is:
-
-```text
-#12E6A5 → #3B82F6
-```
-
-Do not introduce additional decorative gradients.
-
-## ❌ No Inter-on-everything
-
-Use:
-
-- Instrument Sans
-- IBM Plex Sans
-- IBM Plex Mono
-
-## ❌ No 12-page app
-
-Keep the product to five pages:
-
-```text
-Home
-Desk
-Positions
-Proofs
-Docs
-```
-
-## ❌ No light mode
-
-The hackathon demo is intentionally dark.
-
-## ❌ No stock photos
-
-The product communicates trust through:
-
-- Typography
-- Proofs
-- Numbers
-- Architecture
-- Whitespace
-
-—not stock imagery.
-
----
-
-# 21. Final Design Rule
-
-The entire Attora frontend can be summarized as:
-
-```text
-5 pages
-+
-2 primary fonts
-+
-1 mono font
-+
-1 gradient
-+
-dark ink
-+
-proof-first UX
-```
-
-The visual language should feel like **institutional credit infrastructure**, while the interaction remains simple enough for a hackathon judge to understand immediately.
-
-> **Attora — Keep the asset. Prove the lock. Borrow on Creditcoin.**
+This file is the frontend contract. Pages, type, color, tree, and what must stay sealed are fixed. Implementation follows it; it does not add screens.
