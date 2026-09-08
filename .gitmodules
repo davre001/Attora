@@ -1,6 +1,0 @@
-[submodule "contracts/source/lib/forge-std"]
-	path = contracts/source/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "contracts/source/lib/openzeppelin-contracts"]
-	path = contracts/source/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
