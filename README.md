@@ -1,320 +1,148 @@
-# Attora
+**ATTORA**
 
-### Cross-chain RWA collateral on Ethereum. Borrow on Creditcoin.
+**Private RWA lock on Ethereum. Attested fact on Creditcoin. Loan without publishing the book.**
 
-**Attora** is a cross-chain RWA lending protocol built for the **Creditcoin Attestcoin stack**.
+Provex is confidential RWA credit for the Creditcoin Attestcoin stack. Collateral is locked in a confidential vault on Ethereum. The vault does **not** broadcast size or inventory. It emits a commitment / eligibility statement. Attestcoin proves that source-chain statement on Creditcoin. An Attestcoin Smart Contract then opens a loan against the proof — not against a trusted feed, and not against a public position tape.
 
-A borrower locks tokenized real-world collateral on Ethereum (Sepolia / mainnet). **Attestcoin** cryptographically proves that lock on Creditcoin. An **Attestcoin Smart Contract (ASC)** on Creditcoin CC3 then opens a loan against the verified collateral event — with **no trusted bridge operator and no self-reported collateral**.
+Built for **BUIDL CTC 2026 Fall — BUIDL For The Real World**.
 
-> **Built for BUIDL CTC 2026 Fall — BUIDL For The Real World.**
-
-**Tracks:** RWA · DeFi
+Tracks: **RWA** · **DeFi**  
+Theme requirement: **Attestcoin Protocol is a core, load-bearing feature.**
 
 ---
 
 ## Problem
 
-Tokenized RWAs — including equities, funds, invoices, and credit positions — already exist on Ethereum.
+Public RWA lending leaks the book.
 
-Credit and loan history already exist as a native domain of Creditcoin.
+If a fund, company, or individual posts tokenized equities, bonds, invoices, or private credit as collateral on a transparent chain, the market can see:
 
-However, these two worlds do not communicate trustlessly without a bridge or centralized oracle.
+- who holds the asset  
+- how much was posted  
+- when they need cash  
+- the liquidation line  
 
-If you hold a tokenized real-world asset on Ethereum and want liquidity on Creditcoin, you currently have to either:
+That information is competitive. Many real-world holders will not use on-chain credit if the position is a press release.
 
-- Wrap or bridge the asset and trust an operator, or
-- Re-underwrite the same collateral from scratch.
+The other failure mode is worse for this stack: hiding the lock behind an API so Creditcoin “just trusts” that collateral exists. That is not Attestcoin. That is a bridge operator.
 
-Both approaches weaken the value of cryptographic provenance.
-
-### The missing primitive
-
-**How can Creditcoin lend against an RWA that remains on Ethereum while cryptographically proving that the collateral actually exists and is locked?**
+Provex targets both problems: **keep RWA size private, still prove on Creditcoin that a valid lock exists.**
 
 ---
 
 ## Solution
 
-**Attora treats Attestcoin readability as the underwriting step.**
+**Confidential lock. Public proof of a fact. Settlement on Creditcoin.**
 
-Instead of moving the collateral to Creditcoin, Attora proves its existence and lock state from the source chain.
+1. Borrower deposits an eligible RWA token (or hackathon mock) into `ConfidentialVault` on Ethereum Sepolia.  
+2. The vault records a **commitment** `C = commit(amount, salt, borrower)` (or an encrypted balance). It emits:
 
-### How it works
+   `CollateralCommitted(borrower, loanId, commitment, tier)`
 
-1. The borrower locks an eligible RWA token — or a hackathon stand-in ERC-20 — in an `SourceVault` on Ethereum Sepolia.
-2. The vault emits:
+   It does **not** emit the raw amount.  
+3. Optional eligibility check on source: vault only emits if `amount >= tierMin`. The chain sees *tier*, not inventory.  
+4. Attestcoin attestors finalize the Sepolia block. The proof worker builds Merkle + continuity proofs of the **commitment tx**.  
+5. `LoanBook` on Creditcoin CC3 testnet calls the BlockProver precompile, verifies the tx, decodes `CollateralCommitted`, and opens a loan capped by `tier`.  
+6. Draw / repay happen on CC3. Unlock on Sepolia requires a later attested close (or source-side repay + release).
 
-   `CollateralLocked(borrower, asset, amount, loanId)`
+Creditcoin never learns the exact collateral size. It learns: **this loanId is backed by a verified confidential lock at tier T.**
 
-3. An off-chain proof worker detects the event, waits for attestation, and builds Merkle + continuity proofs through the Attestcoin Proof Builder API.
-4. The `LoanBook` ASC on Creditcoin CC3 calls the **BlockProver precompile**, verifies the source transaction, and decodes the proven `CollateralLocked` event.
-5. Once verification succeeds, the ASC opens the loan against the verified collateral.
-6. The borrower draws stablecoins / test credit on Creditcoin.
-7. Repayment can close the loan on CC3 and later unlock the source vault through writability or an attested unlock flow.
-
-### Core principle
-
-> **Collateral is never "told" to Creditcoin. It is proven.**
-
-This is the Creditcoin-native version of:
-
-> **Keep the RWA. Unlock liquidity.**
+Attestcoin is the underwriting step. Privacy is the payload shape. Neither replaces the other.
 
 ---
 
-## Scope
+## What is confidential vs what is public
 
-Attora focuses on the core cross-chain RWA lending primitive required for the hackathon.
-
-Covered-call / 0% APR mechanics from products such as Spout are **out of scope for the MVP**.
-
-They can be introduced later as an attested `PremiumPosted` cashflow rather than as a simulated on-chain options engine.
-
----
-
-# Why Attestcoin?
-
-Attestcoin is the load-bearing component of Attora.
-
-Every loan opening **fails closed** if BlockProver verification fails.
-
-| Component | Role |
+| Hidden (source vault) | Public (must be, for Attestcoin + CC3) |
 |---|---|
-| **Source Chain** | Ethereum Sepolia (`chainKey = 1` on CC3 testnet) |
-| **Attestation** | Attestors finalize source-chain blocks onto Creditcoin |
-| **Proof Builder API** | [Attestcoin Proof Builder](https://proof-gen-api.cc3-testnet.creditcoin.network/) |
-| **Decoder** | `0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f` |
-| **BlockProver Precompile** | `0x0000000000000000000000000000000000000FD2` |
-| **ChainInfo Precompile** | `0x0000000000000000000000000000000000000fd3` |
-| **ASC Dashboard** | [Creditcoin CC3 Dashboard](https://dashboard.cc3-testnet.creditcoin.network/) |
-| **SDK** | `@gluwa/usc-sdk` |
+| Exact token amount | That a `CollateralCommitted` tx exists |
+| Asset mix / inventory | `loanId`, `commitment`, `tier` |
+| Optional identity mapping | Borrower address used to open the loan |
+| Internal salt / plaintext | Proof bytes, `chainKey`, `blockHeight` |
+| | Debt drawn on CC3 (public EVM transfer) |
 
-## Depth of Integration
-
-The Attestcoin integration is not decorative or optional.
-
-Judges should be able to see that Attestcoin is directly involved in the loan lifecycle:
-
-- Verify the source-chain collateral lock **inside the same Creditcoin transaction that opens the loan**.
-- Replay protection using `(chainKey, blockHeight, txIndex)`.
-- Decode `CollateralLocked` from **proven transaction bytes**, rather than relying on an admin-controlled setter.
-- Optionally verify a second proof for `CollateralReleased` / `Repaid` to close the position.
+Honest limit: Creditcoin is a public EVM. Stablecoin draws are visible. Provex is **confidential underwriting**, not a fully dark chain.
 
 ---
 
-# Architecture
+## Why Attestcoin stays core
 
-```text
-                    AT T O R A
-             Cross-Chain RWA Lending
+Every `openLoan` **fails closed** if BlockProver verification fails.
 
+The proven object is the Sepolia transaction that emitted `CollateralCommitted`. Judges can inspect `chainKey`, block height, and proof payload. There is no `setCollateral(amount)` admin path.
 
- Ethereum Sepolia                         Creditcoin CC3 Testnet
-   Source Chain                                Settlement Chain
-┌───────────────────────┐             ┌───────────────────────────────┐
-│                       │             │                               │
-│   RWA Token (ERC-20)  │             │       LoanBook.sol            │
-│                       │             │       ASC                     │
-│   SourceVault.sol     │   Event     │                               │
-│                       │────────────►│   • verifyAndEmit             │
-│   • lock              │             │     (BlockProver)              │
-│   • unlock            │             │   • decode CollateralLocked   │
-│                       │             │   • openLoan                  │
-└───────────┬───────────┘             │   • repay                     │
-            │                         │   • liquidate                 │
-            │                         │                               │
-            │                         │   CreditToken.sol             │
-            │                         │   (test liquidity)             │
-            │                         │                               │
-            │                         └───────────────┬───────────────┘
-            │                                         │
-            ▼                                         ▼
-   ┌───────────────────┐                    Borrower receives
-   │ Attestcoin        │                    test stablecoins /
-   │ Attestors         │                    Creditcoin liquidity
-   └─────────┬─────────┘
-             │
-             ▼
-   ┌───────────────────┐
-   │ Proof Worker      │
-   │                   │
-   │ • @gluwa/usc-sdk  │
-   │ • Proof Builder   │
-   │ • Merkle proofs   │
-   │ • Continuity      │
-   └───────────────────┘
+| Piece | Role |
+|---|---|
+| Source chain | Ethereum Sepolia (`chainKey = 1` on CC3 testnet) |
+| Event proven | `CollateralCommitted(borrower, loanId, commitment, tier)` |
+| Proof Builder API | `https://proof-gen-api.cc3-testnet.creditcoin.network/` |
+| Decoder (CC3 testnet) | `0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f` |
+| BlockProver | `0x0000000000000000000000000000000000000FD2` |
+| ChainInfo | `0x0000000000000000000000000000000000000fd3` |
+| ASC dashboard | `https://dashboard.cc3-testnet.creditcoin.network/` |
+| SDK | `@gluwa/usc-sdk` |
+
+Environments: https://docs.attestcoin.org/attestcoin-protocol/attestcoin-protocol-chains-environments  
+Readability: https://docs.attestcoin.org/attestcoin-protocol/attestcoin-readability  
+Tutorials: https://docs.attestcoin.org/attestcoin-protocol/guided-tutorials  
+
+Depth of use (scoring):
+
+- Verify the confidential-commitment tx **in the same CC3 transaction** that opens the loan  
+- Replay protection on `(chainKey, blockHeight, txIndex)`  
+- Decode `CollateralCommitted` from proven bytes — never from an off-chain JSON amount  
+- Reject proofs that do not match `loanId` + `msg.sender`
+
+---
+
+## Architecture
+
+```
+Ethereum Sepolia                         Creditcoin CC3 Testnet
+┌──────────────────────────────┐         ┌─────────────────────────────────┐
+│ MockRWA                      │         │ LoanBook.sol (ASC)              │
+│ ConfidentialVault.sol        │ event   │  BlockProver.verify(...)        │
+│  commit(amount, salt)        │ ──────► │  decode CollateralCommitted     │
+│  emit commitment + tier      │         │  openLoan(tier) — no raw amount │
+│  plaintext stays off-log     │         │ MockStable draw / repay         │
+└──────────────┬───────────────┘         └─────────────────────────────────┘
+               │
+               ▼
+     Attestcoin attestors + proof worker
+     (@gluwa/usc-sdk, Proof Builder API)
 ```
 
+### Contracts (MVP)
+
+- `ConfidentialVault.sol` — Sepolia. Stores commitment. Emits `CollateralCommitted`. Optional `reveal()` only to the owner off-band, never required for the loan.  
+- `LoanBook.sol` — CC3 ASC. Prove → bind loanId → open tier cap → draw/repay.  
+- `MockRWA.sol` / `MockStable.sol` — testnet stand-ins.
+
+### Tier table (demo)
+
+| Tier | Meaning on source | Max borrow on CC3 (test) |
+|---|---|---|
+| 1 | commitment to ≥ 100 units | 50 |
+| 2 | commitment to ≥ 1_000 units | 500 |
+| 3 | commitment to ≥ 10_000 units | 5_000 |
+
+LTV is enforced by **tier gates on the vault**, not by publishing mark-to-market size on Creditcoin.
+
 ---
 
-# Smart Contracts
+## Repo layout
 
-## `SourceVault.sol`
-
-**Network:** Ethereum Sepolia
-
-Responsible for:
-
-- Locking eligible RWA tokens.
-- Tracking borrower and loan IDs.
-- Holding collateral during the loan.
-- Emitting loan-scoped collateral events.
-- Unlocking collateral after repayment / settlement.
-
-Example event:
-
-```solidity
-event CollateralLocked(
-    address indexed borrower,
-    address indexed asset,
-    uint256 amount,
-    bytes32 indexed loanId
-);
 ```
-
----
-
-## `LoanBook.sol`
-
-**Network:** Creditcoin CC3 Testnet
-
-The `LoanBook` contract is the Attestcoin Smart Contract (ASC) responsible for:
-
-- Verifying Ethereum transactions through BlockProver.
-- Decoding proven `CollateralLocked` events.
-- Preventing replay attacks.
-- Opening loans against verified collateral.
-- Tracking loan state and LTV.
-- Processing repayment.
-- Managing liquidation conditions.
-
-The loan cannot be opened unless the source-chain collateral proof is valid.
-
----
-
-## `MockRWA.sol`
-
-A testnet stand-in for tokenized real-world assets such as:
-
-- Tokenized equities
-- Funds
-- Invoices
-- Credit positions
-
-Used to demonstrate the complete RWA collateral lifecycle without requiring a production RWA issuer.
-
----
-
-## `MockStable.sol`
-
-Test liquidity used on Creditcoin CC3 to simulate the stablecoin / credit asset borrowed against the verified collateral.
-
----
-
-# Loan Parameters
-
-The MVP uses the following hackathon defaults:
-
-| Parameter | MVP Value |
-|---|---:|
-| **LTV** | 50% |
-| **Target Overcollateralization** | 200% |
-| **Collateral Verification** | Attested |
-| **Price Oracle** | Attested price event / conservative fixed LTV |
-| **Liquidation** | Proven price-drop event or conservative fixed LTV |
-
-### Oracle Principle
-
-Attora does **not** assume a price oracle is trustworthy merely because it exists.
-
-Collateral amount is verified through Attestcoin.
-
-If price data is required, the price event should also be attested and proven.
-
-> Do not fake Chainlink data on CC3 unless the relevant source event is also proven.
-
----
-
-# End-to-End Flow
-
-```text
-┌─────────────┐
-│   Borrower  │
-└──────┬──────┘
-       │
-       │ 1. Lock RWA
-       ▼
-┌─────────────────────┐
-│ Ethereum Sepolia   │
-│                     │
-│ SourceVault.lock() │
-└──────────┬──────────┘
-           │
-           │ CollateralLocked
-           ▼
-┌─────────────────────┐
-│ Attestcoin           │
-│ Attestation Layer    │
-└──────────┬──────────┘
-           │
-           │ Proven block / transaction
-           ▼
-┌─────────────────────┐
-│ Proof Worker         │
-│                     │
-│ Merkle Proof        │
-│ Continuity Proof    │
-└──────────┬──────────┘
-           │
-           │ Proof + tx data
-           ▼
-┌──────────────────────────┐
-│ Creditcoin CC3           │
-│                          │
-│ LoanBook ASC             │
-│                          │
-│ BlockProver.verify()     │
-│          ↓               │
-│ Decode event              │
-│          ↓               │
-│ Open Loan                 │
-└───────────┬──────────────┘
-            │
-            │ Credit
-            ▼
-      ┌─────────────┐
-      │  Borrower   │
-      │ receives    │
-      │ liquidity   │
-      └─────────────┘
-```
-
----
-
-# Repository Structure
-
-```text
-attora/
+provex/
 ├── README.md
-│
 ├── docs/
 │   ├── ATTESTCOIN.md
-│   └── ARCHITECTURE.md
-│
+│   └── CONFIDENTIALITY.md
 ├── contracts/
-│   ├── source/
-│   │   └── SourceVault.sol
-│   │
-│   └── creditcoin/
-│       └── LoanBook.sol
-│
-├── worker/
-│   ├── proof-builder/
-│   └── submitter/
-│
+│   ├── source/                  # Sepolia
+│   └── creditcoin/              # CC3 ASC
+├── worker/                      # proof builder + submitter
 ├── frontend/
-│   └── lock-prove-borrow/
-│
 └── scripts/
     ├── deploy-sepolia.ts
     └── deploy-cc3.ts
@@ -322,324 +150,62 @@ attora/
 
 ---
 
-# Quick Start
-
-## Prerequisites
-
-- Node.js 18+
-- Foundry or Hardhat
-- Ethereum Sepolia RPC
-- Creditcoin CC3 Testnet RPC
-- Sepolia ETH
-- CTC / EVM test funds
-- Access to the Attestcoin Proof Builder API
-
----
-
-## Installation
+## Quick start
 
 ```bash
-git clone <this-repo>
-cd attora
-
+git clone <repo>
+cd provex
 npm install
-```
 
-Or, if using Foundry:
-
-```bash
-forge install
-```
-
----
-
-# Deployment
-
-### 1. Deploy Source Vault and Mock RWA
-
-Deploy the Ethereum Sepolia contracts:
-
-```bash
 npm run deploy:sepolia
-```
-
-This deploys:
-
-- `SourceVault.sol`
-- `MockRWA.sol`
-
----
-
-### 2. Deploy LoanBook ASC
-
-Deploy the Creditcoin CC3 contracts:
-
-```bash
 npm run deploy:cc3
-```
-
-This deploys:
-
-- `LoanBook.sol`
-- `MockStable.sol`
-
----
-
-### 3. Start the Proof Worker
-
-```bash
 npm run worker
+npm run frontend
 ```
 
-The worker:
+Demo path:
 
-1. Watches the Ethereum source vault.
-2. Detects `CollateralLocked`.
-3. Waits for the relevant attestation.
-4. Requests proofs from the Attestcoin Proof Builder API.
-5. Builds the proof payload.
-6. Submits the proof to Creditcoin.
+1. Approve MockRWA → `ConfidentialVault.commit(amount, salt, loanId)`  
+2. Vault emits `CollateralCommitted` (commitment + tier only)  
+3. Worker waits for attestation, returns proofs  
+4. On CC3: `LoanBook.openLoan(chainKey, blockHeight, encodedTx, merkleProof, continuityProof, loanId)`  
+5. `draw` up to the tier cap  
+
+If you skip the proof and call a setter, the loan must revert. That is the product.
 
 ---
 
-# Demo Flow
+## Hackathon requirements map
 
-The complete hackathon demo follows this sequence:
+Event: https://dorahacks.io/hackathon/buidl-ctc-2026-fall/detail  
+Deadline: **13 September 2026, 23:59 ET**
 
-### Step 1 — Mint RWA
+| Rule | How Provex meets it |
+|---|---|
+| Must use Attestcoin as a core feature | `openLoan` verifies BlockProver proofs of the Sepolia commitment tx |
+| Working integration code | vault + worker + ASC + frontend proof panel |
+| Technical write-up | `docs/ATTESTCOIN.md` + this README |
+| Deployed on testnet | Sepolia + CC3 testnet |
+| Original work | New contracts; not a Spout fork |
+| Sector | RWA (primary), DeFi (secondary) |
+| GitHub README, deck, demo video | lock → commitment event → proof ready → loan on CC3 |
+| Do not infringe IP | Independent design; confidential *underwriting*, not a copy of any issuer |
 
-Mint test `MockRWA` tokens on Ethereum Sepolia.
-
-### Step 2 — Lock Collateral
-
-Call:
-
-```solidity
-SourceVault.lock(amount, loanId)
-```
-
-The vault emits:
-
-```text
-CollateralLocked(
-    borrower,
-    asset,
-    amount,
-    loanId
-)
-```
-
-### Step 3 — Generate Proof
-
-The proof worker:
-
-- Detects the event.
-- Waits for Attestcoin attestation.
-- Requests the required Merkle proof.
-- Builds continuity proof data.
-- Prepares the transaction payload.
-
-### Step 4 — Verify on Creditcoin
-
-The frontend or script calls:
-
-```solidity
-LoanBook.openLoan(
-    proof,
-    encodedTx,
-    ...
-)
-```
-
-The ASC invokes the BlockProver precompile.
-
-### Step 5 — Open Loan
-
-If the proof is valid:
-
-```text
-Ethereum collateral
-        ↓
-Attestcoin proof
-        ↓
-BlockProver verification
-        ↓
-CollateralLocked decoded
-        ↓
-Loan opened
-```
-
-### Step 6 — Borrow
-
-The borrower receives test stablecoins / credit on Creditcoin.
+Submission extras they ask for: integration summary, GitHub, deck, demo video, team identities.
 
 ---
 
-# Security Model
+## What this is not
 
-Attora is designed around **proof-based collateral verification** rather than trust assumptions.
+- Not a U.S. broker-dealer or live equity wrapper  
+- Not full-chain dark pool / FHE L2  
+- Not 0% covered-call yield  
+- Not eligible if confidentiality is only CSS and Attestcoin is unused  
 
-### No trusted bridge operator
-
-The RWA remains on Ethereum.
-
-No centralized operator is responsible for reporting the collateral state.
-
-### No self-reported collateral
-
-The borrower cannot simply tell Creditcoin:
-
-> "I locked 1,000 RWA tokens."
-
-The Creditcoin ASC independently verifies the source transaction.
-
-### Replay protection
-
-Loan creation must protect against replay using:
-
-```text
-(chainKey, blockHeight, txIndex)
-```
-
-This prevents the same source transaction from being reused to open multiple loans.
-
-### Fail-closed loan creation
-
-If BlockProver verification fails:
-
-```text
-Loan creation → REVERT
-```
-
-The protocol does not fall back to an admin-set collateral value.
+Roadmap after the hackathon: real ZK range proofs inside the commitment, attested mark-to-market without size leak, mainnet Ethereum `chainKey`.
 
 ---
 
-# Attestcoin Resources
-
-The implementation is based on the following Attestcoin documentation:
-
-- [Attestcoin Environments](https://docs.attestcoin.org/attestcoin-protocol/attestcoin-protocol-chains-environments)
-- [Attestcoin Readability](https://docs.attestcoin.org/attestcoin-protocol/attestcoin-readability)
-- [Attestcoin Guided Tutorials](https://docs.attestcoin.org/attestcoin-protocol/guided-tutorials)
-
-The Cross-Chain Loan tutorial is particularly relevant to Attora's architecture.
-
----
-
-# Hackathon Submission
-
-**Event:** BUIDL CTC 2026 Fall — BUIDL For The Real World
-
-**Tracks:**
-
-- RWA — Primary
-- DeFi — Secondary
-
-**Attora submission checklist:**
-
-- [ ] Original work for BUIDL CTC 2026 Fall
-- [ ] Deployed on Creditcoin CC3 Testnet
-- [ ] Deployed on Ethereum Sepolia
-- [ ] Attestcoin integration is load-bearing
-- [ ] Loan cannot open without valid BlockProver verification
-- [ ] `docs/ATTESTCOIN.md` explains the integration
-- [ ] `docs/ARCHITECTURE.md` explains system architecture
-- [ ] Public GitHub repository
-- [ ] Team information completed
-- [ ] Deck / one-pager PDF
-- [ ] Demo video
-- [ ] Demo demonstrates:
-
-```text
-Lock on Ethereum
-      ↓
-Attestation
-      ↓
-Proof generation
-      ↓
-BlockProver verification
-      ↓
-Loan opened on Creditcoin
-      ↓
-Borrower receives liquidity
-```
-
-**Hackathon:** [BUIDL CTC 2026 Fall](https://dorahacks.io/hackathon/buidl-ctc-2026-fall/detail)
-
-**Deadline:** 13 September 2026, 23:59 ET
-
----
-
-# What Attora Is Not
-
-Attora is intentionally scoped as a hackathon MVP.
-
-It is:
-
-- Not a U.S. broker-dealer.
-- Not a production lending platform.
-- Not a live covered-call / 0% APR engine.
-- Not a wrapper around Spout Finance.
-- Not a bridge that transfers the RWA to Creditcoin.
-- Not eligible as an Attestcoin integration if Attestcoin is merely imported but not used for loan verification.
-
----
-
-# Future Roadmap
-
-Post-hackathon development could include:
-
-### Mainnet RWA Support
-
-Support production tokenized assets on Ethereum mainnet.
-
-### Attested Pricing
-
-Introduce proven RWA valuation events for dynamic LTV and liquidation.
-
-### Attested Options Premium
-
-Add an attested `PremiumPosted` cashflow mechanism for covered-call / 0% APR products.
-
-### Cross-Chain Repayment
-
-Use Attestcoin writability or attested unlock events to automatically release Ethereum collateral after repayment.
-
-### Production Custody
-
-Integrate regulated RWA issuers, custodians, and compliant tokenized asset infrastructure.
-
-### Additional Source Chains
-
-Expand beyond Ethereum as additional Attestcoin-readable environments become available.
-
----
-
-# Core Value Proposition
-
-Attora separates **asset custody** from **credit access**.
-
-The RWA does not need to leave Ethereum.
-
-Creditcoin does not need to blindly trust Ethereum.
-
-Instead:
-
-```text
-RWA stays on Ethereum
-          +
-Attestcoin proves the state
-          +
-Creditcoin verifies the proof
-          =
-Trust-minimized RWA liquidity
-```
-
-> **Keep the asset. Prove the collateral. Unlock the credit.**
-
----
-
-# License
+## License
 
 MIT
