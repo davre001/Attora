@@ -102,9 +102,9 @@ function WalletMenu({
         title="Wallet"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="btn-glass inline-flex h-9 items-center gap-2 rounded-full border-mint/30 bg-mint/10 px-4 font-mono text-xs font-medium text-mint transition-all duration-200 hover:bg-mint/20 active:scale-95"
+        className="btn-glass inline-flex h-6 items-center gap-1.5 rounded-[10px] border-mint/30 bg-mint/10 px-3 font-mono text-[10px] font-medium text-mint transition-all duration-200 hover:bg-mint/20 active:scale-95"
       >
-        <Wallet className="size-3.5 text-mist" />
+        <Wallet className="size-3 text-mist" />
         <span className="size-1.5 rounded-full bg-mint shadow-[0_0_8px_rgba(145,197,255,0.8)]" />
         {address ? truncateMiddle(address, 6, 4) : "Connected"}
       </button>
@@ -112,7 +112,15 @@ function WalletMenu({
       {open && (
         <div
           role="menu"
-          className="glass-strong absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl border border-white/[0.09] p-1.5 shadow-[0_16px_44px_rgba(0,0,0,0.5)]"
+          className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-[10px] p-1.5"
+          style={{
+            background: "rgba(255, 255, 255, 0.07)",
+            backdropFilter: "blur(24px) saturate(160%)",
+            WebkitBackdropFilter: "blur(24px) saturate(160%)",
+            border: "1px solid rgba(255, 255, 255, 0.09)",
+            boxShadow:
+              "inset 0 1px 0 0 rgba(255,255,255,0.08), 0 16px 44px rgba(0,0,0,0.5)",
+          }}
         >
           {!confirming ? (
             <>
