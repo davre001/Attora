@@ -64,7 +64,8 @@ async function advanceJob(job: ProofJob): Promise<void> {
 let timer: ReturnType<typeof setInterval> | undefined;
 let ticking = false;
 
-async function tick(): Promise<void> {
+/** Exported for tests — drives one pass over all open jobs and resolves once done. */
+export async function tick(): Promise<void> {
   if (ticking) return; // don't overlap if a previous tick is still in flight
   ticking = true;
   try {
