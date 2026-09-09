@@ -26,7 +26,7 @@ That information is competitive. Many real-world holders will not use on-chain c
 
 The other failure mode is worse for this stack: hiding the lock behind an API so Creditcoin “just trusts” that collateral exists. That is not Attestcoin. That is a bridge operator.
 
-Provex targets both problems: **keep RWA size private, still prove on Creditcoin that a valid lock exists.**
+Attora targets both problems: **keep RWA size private, still prove on Creditcoin that a valid lock exists.**
 
 ---
 
@@ -134,20 +134,19 @@ LTV is enforced by **tier gates on the vault**, not by publishing mark-to-market
 ## Repo layout
 
 ```
-provex/
+Attora/
 ├── README.md
 ├── docs/
-│   ├── ATTESTCOIN.md
-│   └── CONFIDENTIALITY.md
+│   ├── frontend-integration.md  # real ABIs, worker API shape, exact contract call params
+│   └── abis/                    # ConfidentialVault, MockRWA, LoanBook, MockStable (ABI only)
 ├── contracts/
-│   ├── source/                  # Sepolia
-│   └── creditcoin/              # CC3 ASC
-├── worker/                      # proof builder + submitter
-├── frontend/
-└── scripts/
-    ├── deploy-sepolia.ts
-    └── deploy-cc3.ts
+│   ├── source/                  # Sepolia: ConfidentialVault.sol, MockRWA.sol, tests, deploy script
+│   └── creditcoin/              # CC3 ASC: LoanBook.sol, MockStable.sol, tests, deploy script
+├── worker/                      # single Node/TS service: chain listener, proof pipeline, REST API
+└── frontend/                    # Next.js app (Desk / Positions / Proofs / Faucet / Docs)
 ```
+
+Each of `contracts/source`, `contracts/creditcoin`, and `worker` is a self-contained project — there's no root `package.json` tying them together; `cd` into each and follow its own tooling.
 
 ---
 
@@ -155,21 +154,39 @@ provex/
 
 ```bash
 git clone <repo>
-cd provex
-npm install
+cd Attora
 
-npm run deploy:sepolia
-npm run deploy:cc3
-npm run worker
-npm run frontend
+# Sepolia contracts (ConfidentialVault + MockRWA) — Foundry
+cd contracts/source
+forge test
+forge script script/Deploy.s.sol --rpc-url <sepolia-rpc> --broadcast
+cd ../..
+
+# CC3 contracts (LoanBook + MockStable) — Foundry
+cd contracts/creditcoin
+forge test
+SOURCE_VAULT=<ConfidentialVault address from above> \
+  forge script script/Deploy.s.sol --rpc-url <cc3-rpc> --broadcast
+cd ../..
+
+# worker — Node/TypeScript, see worker/.env.example for required config
+cd worker
+npm install
+npm run dev
+cd ..
+
+# frontend — Next.js
+cd frontend
+npm install
+npm run dev
 ```
 
 Demo path:
 
 1. Approve MockRWA → `ConfidentialVault.commit(amount, salt, loanId)`
 2. Vault emits `CollateralCommitted` (commitment + tier only)
-3. Worker waits for attestation, returns proofs
-4. On CC3: `LoanBook.openLoan(chainKey, blockHeight, encodedTx, merkleProof, continuityProof, loanId)`
+3. Worker watches Sepolia, drives the proof through Attestcoin attestation, and serves it over its REST API
+4. Wallet calls `LoanBook.openLoan(blockHeight, encodedTx, merkleRoot, siblings, lowerEndpointDigest, continuityRoots)` on CC3 directly — the worker never submits this itself, since CC3 only accepts a proof whose decoded borrower matches `msg.sender`
 5. `draw` up to the tier cap
 
 If you skip the proof and call a setter, the loan must revert. That is the product.
@@ -181,11 +198,11 @@ If you skip the proof and call a setter, the loan must revert. That is the produ
 Event: https://dorahacks.io/hackathon/buidl-ctc-2026-fall/detail  
 Deadline: **13 September 2026, 23:59 ET**
 
-| Rule                                  | How Provex meets it                                                       |
+| Rule                                  | How Attora meets it                                                       |
 | ------------------------------------- | ------------------------------------------------------------------------- |
 | Must use Attestcoin as a core feature | `openLoan` verifies BlockProver proofs of the Sepolia commitment tx       |
 | Working integration code              | vault + worker + ASC + frontend proof panel                               |
-| Technical write-up                    | `docs/ATTESTCOIN.md` + this README                                        |
+| Technical write-up                    | this README (Problem / Solution / Architecture / Why Attestcoin stays core) |
 | Deployed on testnet                   | Sepolia + CC3 testnet                                                     |
 | Original work                         | New contracts; not a Spout fork                                           |
 | Sector                                | RWA (primary), DeFi (secondary)                                           |
