@@ -87,7 +87,6 @@ export default function Docs() {
     <section className="container py-10 lg:py-14">
       <div className="mx-auto max-w-desk">
         <PageHeader
-          kicker="06 · DOCS"
           title="Documentation"
           description="Architecture & protocol mechanics. How Attora decouples collateral verification from balance sheet transparency."
         />

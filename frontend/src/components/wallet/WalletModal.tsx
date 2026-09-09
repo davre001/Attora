@@ -107,7 +107,7 @@ export function WalletModal() {
     setError(null);
     setPending(row.key);
     try {
-      await connectInjected(row.provider);
+      await connectInjected(row.provider, row.key);
     } catch {
       setError("Connection rejected — approve the request in your wallet.");
     } finally {

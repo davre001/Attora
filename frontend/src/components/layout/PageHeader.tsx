@@ -23,10 +23,15 @@ export function PageHeader({
           {kicker}
         </span>
       )}
-      <h1 className="mt-3 font-display text-4xl font-extrabold tracking-[-0.035em] text-snow sm:text-5xl lg:text-[52px] lg:leading-[1.1]">
+      <h1
+        className={cn(
+          "font-display text-4xl font-extrabold tracking-[-0.035em] text-snow sm:text-5xl lg:text-[52px] lg:leading-[1.1]",
+          kicker && "mt-3",
+        )}
+      >
         {title}
       </h1>
-      <p className="mt-3.5 max-w-2xl font-body text-base font-light leading-relaxed text-mist sm:text-lg">
+      <p className="mt-3.5 max-w-2xl font-body text-[11px] font-light leading-relaxed text-mist sm:text-[13px]">
         {description}
       </p>
     </div>

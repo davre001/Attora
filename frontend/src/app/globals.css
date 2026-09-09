@@ -17,6 +17,11 @@
     --sealed: #d4d4d4;
     --proof: linear-gradient(135deg, #91c5ff, #3a81f6);
 
+    /* Categorical chart marks — validated pair for the dark card surface
+       (mint/sand brand ramp fails the chart-mark checks; see Analytics). */
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+
     /* Glassmorphism surface tokens */
     --glass-bg: rgba(255, 255, 255, 0.045);
     --glass-bg-strong: rgba(255, 255, 255, 0.07);

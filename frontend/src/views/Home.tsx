@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useDesk } from "@/store/desk";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +36,15 @@ const STEPS = [
 
 export default function Home() {
   const { connected, openWalletModal } = useDesk();
+  const router = useRouter();
+
+  // The landing is a pre-connect page only — once a wallet is connected,
+  // bounce to the portfolio (covers back button and direct "/" entry).
+  // A disconnect elsewhere lands here via router.replace("/") in the modal,
+  // so this effect only arms after that navigation completes.
+  useEffect(() => {
+    if (connected) router.replace("/portfolio");
+  }, [connected, router]);
 
   return (
     <>
@@ -68,9 +79,9 @@ export default function Home() {
                   asChild
                   variant="ghost"
                   size="lg"
-                  className="h-12 px-6 text-mist transition-colors hover:bg-white/[0.06] hover:text-snow"
+                  className="h-12 px-6 text-snow transition-colors hover:bg-white/[0.06]"
                 >
-                  <Link href="/proofs">Inspect a proof</Link>
+                  <Link href="/docs">Docs</Link>
                 </Button>
               </div>
             </HeroColorPanelsActions>

@@ -68,7 +68,6 @@ export default function Proofs() {
     <section className="container py-10 lg:py-14">
       <div className="mx-auto max-w-desk">
         <PageHeader
-          kicker="04 · PROOFS"
           title="Proofs"
           description="Attestcoin receipt explorer. Inspect cryptographic Merkle and continuity proofs verified down to the Sepolia block."
         />

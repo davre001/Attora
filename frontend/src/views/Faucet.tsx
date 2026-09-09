@@ -149,8 +149,10 @@ function MintTile({
     setMinting(true);
     setTimeout(() => {
       setMinting(false);
-      setTxHash(mockTxHash());
-      mint(tokenKey, amount); // credit the Desk portfolio balances
+      const hash = mockTxHash();
+      setTxHash(hash);
+      // credit the Desk portfolio balances + log the mint to History
+      mint(tokenKey, amount, { symbol: token, chainId: chain.id, txHash: hash });
     }, 1200);
   };
 
@@ -233,7 +235,6 @@ export default function Faucet() {
     <section className="container py-10 lg:py-14">
       <div className="mx-auto max-w-desk">
         <PageHeader
-          kicker="05 · FAUCET"
           title="Faucet"
           description="Testnet asset dispenser. Request Sepolia ETH, Creditcoin CTC, and mint testnet RWA collateral to test confidential commitments."
         />

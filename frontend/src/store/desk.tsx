@@ -23,7 +23,7 @@ import {
   type ProofJob,
   type Tier,
 } from "@/lib/attora";
-import type { EIP1193Provider } from "@/lib/wallets";
+import { discoverWallets, getInjectedProvider, type EIP1193Provider } from "@/lib/wallets";
 
 export type Step = "commit" | "prove" | "borrow";
 
@@ -57,9 +57,53 @@ const MOCK_BALANCES: Balances = {
 
 const MOCK_ADDRESS = "0x9F4c2b6D8e1A5f30C7bB94a21D6E8f0A3C5d3ac2";
 
+/** A faucet mint credited to the wallet — feeds the History activity feed. */
+export interface MintRecord {
+  id: string;
+  token: keyof Balances;
+  symbol: string;
+  amount: number;
+  chainId: number;
+  txHash: string;
+  createdAt: number;
+}
+
 /** Proof progression timings (ms) for the mock worker. */
 const ATTEST_MS = 1500;
 const READY_MS = 3200;
+
+/**
+ * A connection persisted across refreshes so the connected shell (and its
+ * wallet-gated nav) survives a reload. The wallet keeps its authorization
+ * across reloads; only our in-memory state is lost. Deliberately stores NO
+ * address or balances — the real state is re-derived from the wallet via a
+ * silent `eth_accounts` call on mount (§9: nothing sensitive touches storage).
+ */
+const SESSION_KEY = "attora.session";
+type SavedSession = { kind: "injected"; rdns?: string } | { kind: "demo" };
+
+function saveSession(s: SavedSession) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  } catch {
+    /* private mode / storage disabled — the session just won't persist */
+  }
+}
+function loadSession(): SavedSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as SavedSession) : null;
+  } catch {
+    return null;
+  }
+}
+function clearSession() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 interface DeskContextValue {
   // wallet / network
@@ -86,12 +130,14 @@ interface DeskContextValue {
   // ledgers
   positions: Loan[];
   proofs: ProofJob[];
+  /** Faucet mints credited to the wallet, newest first (History feed). */
+  mints: MintRecord[];
   /** Null while disconnected. Wallet holdings only — the sealed collateral
    * amount never lives here (§9: a balance delta would leak the size). */
   balances: Balances | null;
 
   // actions
-  connectInjected: (provider: EIP1193Provider) => Promise<void>;
+  connectInjected: (provider: EIP1193Provider, rdns?: string) => Promise<void>;
   /** Simulated wallet for demoing without an extension. */
   connectDemo: () => void;
   disconnect: () => void;
@@ -105,7 +151,11 @@ interface DeskContextValue {
   goStep: (step: Step) => void;
   drawOn: (loanId: string) => void;
   repayOn: (loanId: string) => void;
-  mint: (token: keyof Balances, amount: number) => void;
+  mint: (
+    token: keyof Balances,
+    amount: number,
+    meta?: { symbol?: string; chainId?: number; txHash?: string },
+  ) => void;
 }
 
 const DeskContext = createContext<DeskContextValue | null>(null);
@@ -129,6 +179,7 @@ export function DeskProvider({ children }: { children: ReactNode }) {
 
   const [positions, setPositions] = useState<Loan[]>([]);
   const [proofs, setProofs] = useState<ProofJob[]>([]);
+  const [mints, setMints] = useState<MintRecord[]>([]);
   const [balances, setBalances] = useState<Balances | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -168,10 +219,38 @@ export function DeskProvider({ children }: { children: ReactNode }) {
   // a ref keeps the delegation stable without a dependency cycle.
   const disconnectRef = useRef<() => void>(() => undefined);
 
+  /** Attach an injected provider's listeners and move the app into the
+   *  connected state. Shared by the interactive connect and the silent
+   *  refresh-time reconnect below. */
+  const attachInjected = useCallback(
+    (provider: EIP1193Provider, accounts: string[], chainIdHex: string) => {
+      detachWalletListeners();
+      providerRef.current = provider;
+      const onAccounts = (next: string[]) => {
+        if (next.length === 0) {
+          disconnectRef.current();
+        } else {
+          setAddress(next[0]);
+        }
+      };
+      const onChain = (hex: string) => setChainId(parseInt(hex, 16));
+      walletHandlersRef.current = { accounts: onAccounts, chain: onChain };
+      provider.on?.("accountsChanged", onAccounts);
+      provider.on?.("chainChanged", onChain);
+
+      setConnected(true);
+      setAddress(accounts[0]);
+      setChainId(parseInt(chainIdHex, 16));
+      setBalances(MOCK_BALANCES);
+    },
+    [detachWalletListeners],
+  );
+
   /** Connect through a real injected EIP-1193 provider (MetaMask / Rabby /
-   *  Phantom / any browser wallet). Throws on user rejection. */
+   *  Phantom / any browser wallet). Throws on user rejection. `rdns` is the
+   *  wallet id, persisted so the session can be silently restored on refresh. */
   const connectInjected = useCallback(
-    async (provider: EIP1193Provider) => {
+    async (provider: EIP1193Provider, rdns?: string) => {
       setConnecting(true);
       try {
         const accounts = (await provider.request({
@@ -182,29 +261,13 @@ export function DeskProvider({ children }: { children: ReactNode }) {
           method: "eth_chainId",
         })) as string;
 
-        detachWalletListeners();
-        providerRef.current = provider;
-        const onAccounts = (next: string[]) => {
-          if (next.length === 0) {
-            disconnectRef.current();
-          } else {
-            setAddress(next[0]);
-          }
-        };
-        const onChain = (hex: string) => setChainId(parseInt(hex, 16));
-        walletHandlersRef.current = { accounts: onAccounts, chain: onChain };
-        provider.on?.("accountsChanged", onAccounts);
-        provider.on?.("chainChanged", onChain);
-
-        setConnected(true);
-        setAddress(accounts[0]);
-        setChainId(parseInt(chainIdHex, 16));
-        setBalances(MOCK_BALANCES);
+        attachInjected(provider, accounts, chainIdHex);
+        saveSession({ kind: "injected", rdns });
       } finally {
         setConnecting(false);
       }
     },
-    [detachWalletListeners],
+    [attachInjected],
   );
 
   /** Simulated wallet — keeps the mock-first demo usable without any
@@ -214,6 +277,7 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     setAddress(MOCK_ADDRESS);
     setChainId((cur) => cur ?? SEPOLIA.id);
     setBalances(MOCK_BALANCES);
+    saveSession({ kind: "demo" });
   }, []);
 
   const disconnect = useCallback(() => {
@@ -222,9 +286,61 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     setAddress(null);
     setChainId(null);
     setBalances(null);
+    setMints([]);
+    clearSession();
   }, [detachWalletListeners]);
 
   disconnectRef.current = disconnect;
+
+  /** Silently restore an injected connection on refresh. `eth_accounts` never
+   *  prompts — it returns the still-authorized accounts, or [] if the wallet
+   *  was locked or disconnected externally (then we drop the stale session). */
+  const reconnectInjected = useCallback(
+    async (rdns?: string) => {
+      let provider: EIP1193Provider | null = null;
+      if (rdns && rdns !== "injected") {
+        const detail = (await discoverWallets()).find(
+          (d) => d.info.rdns === rdns,
+        );
+        provider = detail?.provider ?? null;
+      }
+      if (!provider) provider = getInjectedProvider();
+      if (!provider) {
+        clearSession();
+        return;
+      }
+      try {
+        const accounts = (await provider.request({
+          method: "eth_accounts",
+        })) as string[];
+        if (!accounts?.length) {
+          clearSession();
+          return;
+        }
+        const chainIdHex = (await provider.request({
+          method: "eth_chainId",
+        })) as string;
+        attachInjected(provider, accounts, chainIdHex);
+      } catch {
+        clearSession();
+      }
+    },
+    [attachInjected],
+  );
+
+  // Rehydrate a prior session after a refresh. Runs in a mount effect (never
+  // during render) so the first client render still matches the server's
+  // disconnected markup — no hydration mismatch. Without this the nav, which
+  // is gated on `connected`, vanishes on every reload.
+  const rehydratedRef = useRef(false);
+  useEffect(() => {
+    if (rehydratedRef.current) return;
+    rehydratedRef.current = true;
+    const saved = loadSession();
+    if (!saved) return;
+    if (saved.kind === "demo") connectDemo();
+    else void reconnectInjected(saved.rdns);
+  }, [connectDemo, reconnectInjected]);
 
   const switchNetwork = useCallback((id: number) => {
     // Ask the wallet to switch; the mock ledger follows either way.
@@ -246,10 +362,25 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     setRedirectAfterConnect(null);
   }, []);
 
-  /** Credit a faucet mint into the wallet balances. */
-  const mint = useCallback((token: keyof Balances, amount: number) => {
-    setBalances((b) => (b ? { ...b, [token]: b[token] + amount } : b));
-  }, []);
+  /** Credit a faucet mint into the wallet balances and log it to History. */
+  const mint = useCallback(
+    (token: keyof Balances, amount: number, meta?: { symbol?: string; chainId?: number; txHash?: string }) => {
+      setBalances((b) => (b ? { ...b, [token]: b[token] + amount } : b));
+      setMints((list) => [
+        {
+          id: `${token}-${Date.now()}`,
+          token,
+          symbol: meta?.symbol ?? token.toUpperCase(),
+          amount,
+          chainId: meta?.chainId ?? SEPOLIA.id,
+          txHash: meta?.txHash ?? mockTxHash(),
+          createdAt: Date.now(),
+        },
+        ...list,
+      ]);
+    },
+    [],
+  );
 
   const commit = useCallback(
     (amount: number) => {
@@ -402,6 +533,7 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     borrowError,
     positions,
     proofs,
+    mints,
     balances,
     connectInjected,
     connectDemo,

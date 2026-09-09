@@ -23,7 +23,6 @@ export default function Positions() {
       <div className="mx-auto max-w-desk">
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <PageHeader
-            kicker="03 · POSITIONS"
             title="Positions"
             description="Live credit lines. Active debt and tier caps drawn against attested locks. Underlying collateral values remain permanently confidential."
           />

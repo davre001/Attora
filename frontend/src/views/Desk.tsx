@@ -7,7 +7,7 @@ import { Card, CardLabel } from "@/components/ui/card";
 import { Hash } from "@/components/ui/Hash";
 import { SealedChip } from "@/components/ui/SealedChip";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Stepper } from "@/components/desk/Stepper";
+import { WorkflowProgress } from "@/components/desk/WorkflowProgress";
 import { CommitPanel } from "@/components/desk/CommitPanel";
 import { ProofPanel } from "@/components/desk/ProofPanel";
 import { BorrowPanel } from "@/components/desk/BorrowPanel";
@@ -29,8 +29,7 @@ function RailRow({
 }
 
 export default function Desk() {
-  const { step, goStep, job, tier, address, chainId, isSepolia, isCC3 } =
-    useDesk();
+  const { step, job, tier, address, chainId, isSepolia, isCC3 } = useDesk();
 
   const netName = chainId ? (CHAINS[chainId]?.short ?? "Unknown") : "Not connected";
 
@@ -38,13 +37,12 @@ export default function Desk() {
     <section className="container py-10 lg:py-14">
       <div className="mx-auto max-w-desk">
         <PageHeader
-          kicker="02 · DESK"
           title="The Desk"
           description="The confidential RWA desk. Commit collateral on Sepolia, prove the lock via Attestcoin, and open loans on Creditcoin — without publishing your book."
         />
 
-        <div className="mt-8 animate-fade-up">
-          <Stepper current={step} onStep={goStep} />
+        <div className="mt-8">
+          <WorkflowProgress />
         </div>
 
         <div className="mt-8 grid gap-4 lg:grid-cols-3">

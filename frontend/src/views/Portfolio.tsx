@@ -1,6 +1,8 @@
 "use client";
 
-import { Briefcase, Coins, Cpu, DollarSign, Droplets, Gem, Landmark, Wallet } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
+import { Briefcase, Clock, Coins, Cpu, DollarSign, Droplets, Eye, EyeOff, Gem, Landmark, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useDesk, type Balances } from "@/store/desk";
 import { CC3, SEPOLIA, STABLE_UNIT } from "@/config/chains";
@@ -28,7 +30,7 @@ const TOKENS: Array<{
   /** Mock USD price — swapped for oracle reads at the contracts milestone. */
   price: number;
 }> = [
-  { key: "eth", symbol: "ETH", name: "Sepolia Ether", role: "Gas", chain: SEPOLIA, icon: Droplets, price: 2_850 },
+  { key: "eth", symbol: "ETH", name: "Sepolia Ethereum", role: "Gas", chain: SEPOLIA, icon: Droplets, price: 2_850 },
   { key: "ctc", symbol: "CTC", name: "Creditcoin", role: "Gas", chain: CC3, icon: Gem, price: 0.85 },
   { key: "gold", symbol: "XAU", name: "Gold", role: "Collateral", chain: SEPOLIA, icon: Coins, price: 2_900 },
   { key: "nvda", symbol: "NVDA", name: "NVIDIA", role: "Collateral", chain: SEPOLIA, icon: Cpu, price: 180 },
@@ -60,14 +62,16 @@ function TokenRow({
   token,
   balance,
   connected,
+  hidden,
 }: {
   token: (typeof TOKENS)[number];
   balance: number | null;
   connected: boolean;
+  hidden: boolean;
 }) {
   const Icon = token.icon;
   const isSepolia = token.chain.id === SEPOLIA.id;
-  const masked = !connected || balance === null;
+  const masked = !connected || balance === null || hidden;
   const value = masked ? null : balance * token.price;
 
   return (
@@ -119,14 +123,76 @@ function TokenRow({
   );
 }
 
+/** Featured balance tile — one of the three headline tokens in the panel. */
+function FeaturedTile({
+  token,
+  balance,
+  connected,
+  hidden,
+}: {
+  token: (typeof TOKENS)[number];
+  balance: number | null;
+  connected: boolean;
+  hidden: boolean;
+}) {
+  const Icon = token.icon;
+  const isSepolia = token.chain.id === SEPOLIA.id;
+  const masked = !connected || balance === null || hidden;
+  const value = masked ? null : balance * token.price;
+
+  return (
+    <div className="group rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 transition-colors duration-200 hover:bg-white/[0.05]">
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-xl border transition-transform duration-300 ease-out group-hover:scale-105",
+            isSepolia
+              ? "border-mint/25 bg-mint/10 text-mint"
+              : "border-sand/25 bg-sand/10 text-sand",
+          )}
+        >
+          <Icon className="size-4" />
+        </span>
+        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-mist">
+          {token.chain.short}
+        </span>
+      </div>
+      <div className="mt-3 flex flex-col">
+        <span className="text-sm font-medium text-snow">{token.name}</span>
+        <span className="font-mono text-[11px] text-mist">{token.symbol}</span>
+      </div>
+      <div className="mt-3">
+        {masked ? (
+          <span className="font-mono text-lg text-mist/40">••••••</span>
+        ) : (
+          <span className="font-mono text-lg font-bold text-snow">
+            {fmtBalance(balance)}
+            <span className="ml-1 text-sm font-normal text-mist">{token.symbol}</span>
+          </span>
+        )}
+        <div className="mt-0.5 font-mono text-xs font-normal text-mist/80">
+          {masked ? "•••" : fmtUsd(value ?? 0)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FEATURED_KEYS: Array<keyof Balances> = ["eth", "ctc", "gold"];
+
 export default function Portfolio() {
   const { connected, address, balances, tier, openWalletModal } = useDesk();
+  const [hideBalances, setHideBalances] = useState(false);
+
+  const featured = FEATURED_KEYS.map(
+    (k) => TOKENS.find((t) => t.key === k)!,
+  );
+  const others = TOKENS.filter((t) => !FEATURED_KEYS.includes(t.key));
 
   return (
     <section className="container py-10 lg:py-14">
       <div className="mx-auto max-w-desk">
         <PageHeader
-          kicker="01 · PORTFOLIO"
           title="Portfolio"
           description="Your cross-chain wallet at a glance — gas, collateral, and borrowed liquidity across Ethereum Sepolia and Creditcoin CC3."
         />
@@ -156,7 +222,51 @@ export default function Portfolio() {
           )}
         </div>
 
-        {/* balances table — one row per asset, columns: asset / chain / role / balance / value */}
+        {/* history — plain icon + text, no pill/tab, sits outside the card at the right edge */}
+        <div className="mt-4 flex justify-end">
+          <Link
+            href="/history"
+            className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-mist transition-colors duration-200 hover:text-snow active:scale-95"
+          >
+            <Clock className="size-3.5" />
+            History
+          </Link>
+        </div>
+
+        {/* featured balances — the three headline tokens in a rounded panel,
+            with a show/hide toggle so the user can mask balances on demand */}
+        <Card className="mt-2 animate-fade-up p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-display text-base font-bold tracking-tight text-snow">
+              Balances
+            </h2>
+            <button
+              type="button"
+              onClick={() => setHideBalances((v) => !v)}
+              aria-pressed={hideBalances}
+              className="btn-glass inline-flex h-8 items-center gap-1.5 rounded-full px-3 font-mono text-[11px] uppercase tracking-wider text-mist transition-all duration-200 hover:text-snow active:scale-95"
+            >
+              {hideBalances ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              {hideBalances ? "Show" : "Hide"}
+            </button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {featured.map((t) => (
+              <FeaturedTile
+                key={t.key}
+                token={t}
+                balance={balances ? balances[t.key] : null}
+                connected={connected}
+                hidden={hideBalances}
+              />
+            ))}
+          </div>
+        </Card>
+
+        {/* other balances table — one row per asset, columns: asset / chain / role / balance / value */}
+        <h2 className="mt-8 font-display text-base font-bold tracking-tight text-snow">
+          Other Asset Balances
+        </h2>
         <Card className="mt-4 animate-fade-up overflow-hidden">
           <table className="w-full border-collapse">
             <thead>
@@ -169,12 +279,13 @@ export default function Portfolio() {
               </tr>
             </thead>
             <tbody>
-              {TOKENS.map((t) => (
+              {others.map((t) => (
                 <TokenRow
                   key={t.key}
                   token={t}
                   balance={balances ? balances[t.key] : null}
                   connected={connected}
+                  hidden={hideBalances}
                 />
               ))}
             </tbody>
@@ -186,13 +297,13 @@ export default function Portfolio() {
                 <td className="hidden sm:table-cell" />
                 <td className="hidden md:table-cell" />
                 <td className={cn(td, "text-right font-mono text-[10px] uppercase tracking-[0.14em] text-mist/70")}>
-                  {TOKENS.length} assets
+                  {others.length} assets
                 </td>
                 <td className={cn(td, "text-right")}>
-                  {connected && balances ? (
+                  {connected && balances && !hideBalances ? (
                     <span className="font-mono text-sm font-medium text-snow">
                       {fmtUsd(
-                        TOKENS.reduce((sum, t) => sum + balances[t.key] * t.price, 0),
+                        others.reduce((sum, t) => sum + balances[t.key] * t.price, 0),
                       )}
                     </span>
                   ) : (
