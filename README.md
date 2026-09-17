@@ -1,229 +1,221 @@
-**ATTORA**
+# Attora Seal
 
-**Private RWA lock on Ethereum. Attested fact on Creditcoin. Loan without publishing the book.**
+**Trade Bitget rTokens when US cash stocks are closed. Publish the rule. Seal the size.**
 
-Attora is confidential RWA credit for the Creditcoin Attestcoin stack. Collateral is locked in a confidential vault on Ethereum. The vault does **not** broadcast size or inventory. It emits a commitment / eligibility statement. Attestcoin proves that source-chain statement on Creditcoin. An Attestcoin Smart Contract then opens a loan against the proof — not against a trusted feed, and not against a public position tape.
+Attora Seal is a quantitative strategy for **Bitget AI Hackathon S2 — Alpha Factory**.
 
-Built for **BUIDL CTC 2026 Fall — BUIDL For The Real World**.
+It trades **tokenized US stocks (rTokens) on Bitget** in the window when NYSE and Nasdaq are shut. The signal is public and reproducible. Live working size is split into small clips so a thin after-hours book cannot read the full order.
 
-Tracks: **RWA** · **DeFi**  
-Theme requirement: **Attestcoin Protocol is a core, load-bearing feature.**
+Track: **Alpha Factory** (Quantitative Strategies)  
+Sub-theme: **After-Hours Information Pricing**  
+Handbook: https://bitget-ai.gitbook.io/bitgetai_hackathons2  
+Deadline: **21 September 2026, 23:59 UTC+8**
+
+---
+
+## What Attora Seal is
+
+Attora Seal is not a wallet, not a lending protocol, and not a trading chatbot.
+
+It is two layers on one book:
+
+1. **Attora** — a rules-based after-hours signal: rToken vs last official cash close.  
+2. **Seal** — the parent order is never sent as one print. It is clipped and jittered on Bitget.
+
+AI (Qwen / Cursor) may write code and search parameters. It does **not** decide fills. The saved config is what you backtest and what judges replay.
+
+If the instrument is not a Bitget rToken, it is not this project.
 
 ---
 
 ## Problem
 
-Public RWA lending leaks the book.
+Cash US equities stop. Bitget rTokens do not.
 
-If a fund, company, or individual posts tokenized equities, bonds, invoices, or private credit as collateral on a transparent chain, the market can see:
+Nights, weekends, and holidays still produce news: earnings after the bell, FOMC, CPI, geopolitics. The rToken can reprice immediately. The cash stock only moves at the next open.
 
-- who holds the asset
-- how much was posted
-- when they need cash
-- the liquidation line
+Most strategies either:
 
-That information is competitive. Many real-world holders will not use on-chain credit if the position is a press release.
+- wait for the cash open and miss the rToken move, or  
+- dump full size into a thin extended-hours book.
 
-The other failure mode is worse for this stack: hiding the lock behind an API so Creditcoin “just trusts” that collateral exists. That is not Attestcoin. That is a bridge operator.
-
-Attora targets both problems: **keep RWA size private, still prove on Creditcoin that a valid lock exists.**
+The second failure is the confidentiality problem. In a quiet rToken book, one large print tells the market **who is leaning and how hard**. It also burns the spread through slippage. You do not need a private chain to care about that. You need **quiet execution**.
 
 ---
 
 ## Solution
 
-**Confidential lock. Public proof of a fact. Settlement on Creditcoin.**
+**Same signal. Sealed size.**
 
-1. Borrower deposits an eligible RWA token (or hackathon mock) into `ConfidentialVault` on Ethereum Sepolia.
-2. The vault records a **commitment** `C = commit(amount, salt, borrower)` (or an encrypted balance). It emits:
+### Signal (Attora)
 
-   `CollateralCommitted(borrower, loanId, commitment, tier)`
+At the US regular-hours close, store the official close of the underlying stock.
 
-   It does **not** emit the raw amount.
-
-3. Optional eligibility check on source: vault only emits if `amount >= tierMin`. The chain sees _tier_, not inventory.
-4. Attestcoin attestors finalize the Sepolia block. The proof worker builds Merkle + continuity proofs of the **commitment tx**.
-5. `LoanBook` on Creditcoin CC3 testnet calls the BlockProver precompile, verifies the tx, decodes `CollateralCommitted`, and opens a loan capped by `tier`.
-6. Draw / repay happen on CC3. Unlock on Sepolia requires a later attested close (or source-side repay + release).
-
-Creditcoin never learns the exact collateral size. It learns: **this loanId is backed by a verified confidential lock at tier T.**
-
-Attestcoin is the underwriting step. Privacy is the payload shape. Neither replaces the other.
-
----
-
-## What is confidential vs what is public
-
-| Hidden (source vault)     | Public (must be, for Attestcoin + CC3)  |
-| ------------------------- | --------------------------------------- |
-| Exact token amount        | That a `CollateralCommitted` tx exists  |
-| Asset mix / inventory     | `loanId`, `commitment`, `tier`          |
-| Optional identity mapping | Borrower address used to open the loan  |
-| Internal salt / plaintext | Proof bytes, `chainKey`, `blockHeight`  |
-|                           | Debt drawn on CC3 (public EVM transfer) |
-
-Honest limit: Creditcoin is a public EVM. Stablecoin draws are visible. Attora is **confidential underwriting**, not a fully dark chain.
-
----
-
-## Why Attestcoin stays core
-
-Every `openLoan` **fails closed** if BlockProver verification fails.
-
-The proven object is the Sepolia transaction that emitted `CollateralCommitted`. Judges can inspect `chainKey`, block height, and proof payload. There is no `setCollateral(amount)` admin path.
-
-| Piece                 | Role                                                      |
-| --------------------- | --------------------------------------------------------- |
-| Source chain          | Ethereum Sepolia (`chainKey = 1` on CC3 testnet)          |
-| Event proven          | `CollateralCommitted(borrower, loanId, commitment, tier)` |
-| Proof Builder API     | `https://proof-gen-api.cc3-testnet.creditcoin.network/`   |
-| Decoder (CC3 testnet) | `0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f`              |
-| BlockProver           | `0x0000000000000000000000000000000000000FD2`              |
-| ChainInfo             | `0x0000000000000000000000000000000000000fd3`              |
-| ASC dashboard         | `https://dashboard.cc3-testnet.creditcoin.network/`       |
-| SDK                   | `@gluwa/usc-sdk`                                          |
-
-Environments: https://docs.attestcoin.org/attestcoin-protocol/attestcoin-protocol-chains-environments  
-Readability: https://docs.attestcoin.org/attestcoin-protocol/attestcoin-readability  
-Tutorials: https://docs.attestcoin.org/attestcoin-protocol/guided-tutorials
-
-Depth of use (scoring):
-
-- Verify the confidential-commitment tx **in the same CC3 transaction** that opens the loan
-- Replay protection on `(chainKey, blockHeight, txIndex)`
-- Decode `CollateralCommitted` from proven bytes — never from an off-chain JSON amount
-- Reject proofs that do not match `loanId` + `msg.sender`
-
----
-
-## Architecture
+While cash is shut, read the Bitget rToken price:
 
 ```
-Ethereum Sepolia                         Creditcoin CC3 Testnet
-┌──────────────────────────────┐         ┌─────────────────────────────────┐
-│ MockRWA                      │         │ LoanBook.sol (ASC)              │
-│ ConfidentialVault.sol        │ event   │  BlockProver.verify(...)        │
-│  commit(amount, salt)        │ ──────► │  decode CollateralCommitted     │
-│  emit commitment + tier      │         │  openLoan(tier) — no raw amount │
-│  plaintext stays off-log     │         │ MockStable draw / repay         │
-└──────────────┬───────────────┘         └─────────────────────────────────┘
-               │
-               ▼
-     Attestcoin attestors + proof worker
-     (@gluwa/usc-sdk, Proof Builder API)
+spread = rToken / cash_close - 1
 ```
 
-### Contracts (MVP)
+If `|spread|` clears the entry threshold and the session is after-hours or weekend:
 
-- `ConfidentialVault.sol` — Sepolia. Stores commitment. Emits `CollateralCommitted`. Optional `reveal()` only to the owner off-band, never required for the loan.
-- `LoanBook.sol` — CC3 ASC. Prove → bind loanId → open tier cap → draw/repay.
-- `MockRWA.sol` / `MockStable.sol` — testnet stand-ins.
+- Scheduled event window (FOMC, CPI, named earnings) → trade **with** the move.  
+- No event → **fade** the spike (empty-book overreaction).
 
-### Tier table (demo)
+Exit at next cash open, when the spread mean-reverts, or at a hard stop.
 
-| Tier | Meaning on source            | Max borrow on CC3 (test) |
-| ---- | ---------------------------- | ------------------------ |
-| 1    | commitment to ≥ 100 units    | 50                       |
-| 2    | commitment to ≥ 1_000 units  | 500                      |
-| 3    | commitment to ≥ 10_000 units | 5_000                    |
+One name. No add-ons in the same window. Hard notional cap, expressed as a **tier**, not a public dollar ticket.
 
-LTV is enforced by **tier gates on the vault**, not by publishing mark-to-market size on Creditcoin.
+### Execution (Seal)
+
+1. Parent size comes from the signal and the tier cap.  
+2. Parent is split into clips (for example 10–20% each).  
+3. Clips go to Bitget with short random delays.  
+4. Clipping stops if the spread is gone, the stop is hit, or cash is about to open.  
+5. PnL and Sharpe are scored on the **parent**, not on each child.
+
+**Hidden in live/paper logs:** residual size, clip count, jitter salt.  
+**Public for judges:** rules, costs, parent equity curve, backtest metrics.
+
+That is confidentiality here: **the after-hours book does not see full size.** It is not Attestcoin and not a confidential vault.
 
 ---
 
-## Repo layout
+## How Bitget is integrated
+
+Bitget is the market and the backtest host.
+
+| Piece | Use |
+|---|---|
+| Bitget rToken | Only tradable instrument |
+| Bitget price / last / mid | `spread` vs cash close |
+| Bitget orders | Child clips (paper or live) |
+| Bitget Playbook | Official Alpha Factory backtest path — parent rules, PnL, max DD, Sharpe |
+| Bitget account | Optional paper/live execution of the same clips |
 
 ```
-Attora/
+US cash close (anchor)
+        ↓
+Bitget rToken price (cash shut)
+        ↓
+Attora rules → parent side + tier
+        ↓
+Seal splitter → N clips + jitter
+        ↓
+Bitget Playbook fill model  and/or  Bitget orders
+        ↓
+parent report (Sharpe, Sortino, DD, turnover)
+```
+
+Run two Playbook (or local) backtests on the **same signal**:
+
+- one-shot parent  
+- clipped parent with extra spread / impact  
+
+Seal is doing its job if clipped results stay inside your impact budget.
+
+No Creditcoin. No Attestcoin. No CC3 mocks.
+
+---
+
+## Repo
+
+```
+attora-seal/
 ├── README.md
-├── docs/
-│   ├── frontend-integration.md  # real ABIs, worker API shape, exact contract call params
-│   └── abis/                    # ConfidentialVault, MockRWA, LoanBook, MockStable (ABI only)
-├── contracts/
-│   ├── source/                  # Sepolia: ConfidentialVault.sol, MockRWA.sol, tests, deploy script
-│   └── creditcoin/              # CC3 ASC: LoanBook.sol, MockStable.sol, tests, deploy script
-├── worker/                      # single Node/TS service: chain listener, proof pipeline, REST API
-└── frontend/                    # Next.js app (Desk / Positions / Proofs / Faucet / Docs)
+├── attora/
+│   ├── data.py          # rToken series + US cash calendar / close
+│   ├── signal.py        # spread, event flag, parent side
+│   ├── seal.py          # clip, jitter, cancel remaining
+│   ├── backtest.py      # parent fills, costs, metrics
+│   └── params.py
+├── configs/
+│   └── default.yaml
+├── reports/
+│   ├── backtest_summary.md
+│   └── equity_curve.csv
+└── scripts/
+    └── run_backtest.py
 ```
-
-Each of `contracts/source`, `contracts/creditcoin`, and `worker` is a self-contained project — there's no root `package.json` tying them together; `cd` into each and follow its own tooling.
 
 ---
 
 ## Quick start
 
 ```bash
-git clone <repo>
-cd Attora
+git clone <this-repo>
+cd attora-seal
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 
-# Sepolia contracts (ConfidentialVault + MockRWA) — Foundry
-cd contracts/source
-forge test
-forge script script/Deploy.s.sol --rpc-url <sepolia-rpc> --broadcast
-cd ../..
-
-# CC3 contracts (LoanBook + MockStable) — Foundry
-cd contracts/creditcoin
-forge test
-SOURCE_VAULT=<ConfidentialVault address from above> \
-  forge script script/Deploy.s.sol --rpc-url <cc3-rpc> --broadcast
-cd ../..
-
-# worker — Node/TypeScript, see worker/.env.example for required config
-cd worker
-npm install
-npm run dev
-cd ..
-
-# frontend — Next.js
-cd frontend
-npm install
-npm run dev
+python scripts/run_backtest.py --config configs/default.yaml
 ```
 
-Demo path:
+Backtest must cover **at least 60 days** total and **at least 30 days out of sample**. Use fees and slippage that match a thin rToken book. Do not assume mid-touch fills with zero cost.
 
-1. Approve MockRWA → `ConfidentialVault.commit(amount, salt, loanId)`
-2. Vault emits `CollateralCommitted` (commitment + tier only)
-3. Worker watches Sepolia, drives the proof through Attestcoin attestation, and serves it over its REST API
-4. Wallet calls `LoanBook.openLoan(blockHeight, encodedTx, merkleRoot, siblings, lowerEndpointDigest, continuityRoots)` on CC3 directly — the worker never submits this itself, since CC3 only accepts a proof whose decoded borrower matches `msg.sender`
-5. `draw` up to the tier cap
-
-If you skip the proof and call a setter, the loan must revert. That is the product.
+Prefer Bitget Playbook for the official validation export, then copy headline metrics into `reports/backtest_summary.md`.
 
 ---
 
-## Hackathon requirements map
+## Metrics to publish
 
-Event: https://dorahacks.io/hackathon/buidl-ctc-2026-fall/detail  
-Deadline: **13 September 2026, 23:59 ET**
+- Period PnL  
+- Sharpe, Sortino  
+- Max drawdown  
+- Turnover  
+- IS Sharpe vs OOS Sharpe  
+- Rolling 30-day Sharpe  
+- One-shot vs clipped cost gap  
 
-| Rule                                  | How Attora meets it                                                       |
-| ------------------------------------- | ------------------------------------------------------------------------- |
-| Must use Attestcoin as a core feature | `openLoan` verifies BlockProver proofs of the Sepolia commitment tx       |
-| Working integration code              | vault + worker + ASC + frontend proof panel                               |
-| Technical write-up                    | this README (Problem / Solution / Architecture / Why Attestcoin stays core) |
-| Deployed on testnet                   | Sepolia + CC3 testnet                                                     |
-| Original work                         | New contracts; not a Spout fork                                           |
-| Sector                                | RWA (primary), DeFi (secondary)                                           |
-| GitHub README, deck, demo video       | lock → commitment event → proof ready → loan on CC3                       |
-| Do not infringe IP                    | Independent design; confidential _underwriting_, not a copy of any issuer |
+Judges watch OOS decay (warning if OOS Sharpe &lt; 0.5× IS). Label paper trading separately from backtest.
 
-Submission extras they ask for: integration summary, GitHub, deck, demo video, team identities.
+---
+
+## Target user
+
+A trader who already uses Bitget rTokens and needs a **closed-market rule** that does not dump full size into the night book.
+
+Not “all traders.” Not a research chatbot.
+
+---
+
+## Role of the LLM
+
+- Used to scaffold `signal.py` / `seal.py` and to search parameters.  
+- Not used inside `backtest.py` to pick side or size.  
+- Name the model you actually used (Qwen if you have credits; otherwise what ran).  
+
+---
+
+## Submission checklist (Alpha Factory)
+
+- [ ] Form track: **Alpha Factory** · sub-theme: **After-Hours Information Pricing**  
+- [ ] Project Description: this alpha, this user, these metrics  
+- [ ] Public GitHub with this README  
+- [ ] Runnable `scripts/run_backtest.py`  
+- [ ] Backtest ≥ 60 days, OOS ≥ 30 days  
+- [ ] LLM role field filled  
+- [ ] X post with `#BitgetHackathon` and `@Bitget_AI` (not a bare retweet)  
+- [ ] Links in **Submission Materials Link**, one per line, labeled  
+
+Form: https://forms.gle/GyWZCMCPocgJdJon6  
+Landing: https://www.bitget.com/activity-hub/hackathon
 
 ---
 
 ## What this is not
 
-- Not a U.S. broker-dealer or live equity wrapper
-- Not full-chain dark pool / FHE L2
-- Not 0% covered-call yield
-- Not eligible if confidentiality is only CSS and Attestcoin is unused
+- Not a confidential RWA loan  
+- Not Attestcoin / Creditcoin  
+- Not Agentic Trading (the LLM is not the decision-maker)  
+- Not an AI research desk  
 
-Roadmap after the hackathon: real ZK range proofs inside the commitment, attested mark-to-market without size leak, mainnet Ethereum `chainKey`.
+Those were a different hackathon. Attora Seal is only: **Bitget rToken, cash closed, sealed clips, replayable parent backtest.**
 
 ---
 
 ## License
 
 MIT
+
+Backtest and paper trading only unless you send clips on Bitget with your own account and risk. Not financial advice.
