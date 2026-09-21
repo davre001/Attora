@@ -11,8 +11,6 @@ Built for **HackCanton — Track 1: Real-World Assets (RWA) & Business Workflows
 
 ## What Attora is
 
-Attora is not a DEX, not a Bitget strategy, and not a public EVM vault.
-
 It is an **end-to-end issuance workflow** organizations can run as a pilot:
 
 1. Issuer **creates** an RWA record (invoice, receipt, or fund unit — one type per pilot).  
