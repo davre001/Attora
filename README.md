@@ -1,4 +1,4 @@
-# Attora
+# Tacet
 
 **Private RWA workflow on Canton.**  
 Create → status → transfer or fulfill → audit.
