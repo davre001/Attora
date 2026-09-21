@@ -1,0 +1,100 @@
+/* ── Cta69 Marquee & Layout ── */
+@keyframes cta69-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.cta69-section {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg, #080A0F);
+  padding: 80px 16px;
+  width: 100%;
+  border-top: 1px solid var(--fg-subtle, rgba(242, 244, 247, 0.08));
+  border-bottom: 1px solid var(--fg-subtle, rgba(242, 244, 247, 0.08));
+}
+
+@media (min-width: 768px) {
+  .cta69-section {
+    padding: 120px 24px;
+  }
+}
+
+/* Backdrop Marquee */
+.cta69-backdrop {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  user-select: none;
+  z-index: 0;
+}
+
+.cta69-track {
+  display: flex;
+  width: max-content;
+  flex-shrink: 0;
+  white-space: nowrap;
+  animation: cta69-marquee 45s linear infinite;
+  color: rgba(242, 244, 247, 0.04);
+}
+
+.cta69-marquee-text {
+  font-family: var(--font-display, sans-serif);
+  font-size: clamp(6rem, 16vw, 15rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  text-transform: uppercase;
+}
+
+/* Centered Statement */
+.cta69-container {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+  display: flex;
+  max-width: 840px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.cta69-heading {
+  margin-top: 32px;
+  font-family: var(--font-display, sans-serif);
+  font-size: clamp(2.4rem, 5.5vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--fg, #F2F4F7);
+  text-wrap: balance;
+}
+
+.cta69-note {
+  margin-top: 24px;
+  max-width: 580px;
+  font-family: var(--font-body, sans-serif);
+  font-size: clamp(1rem, 1.8vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--fg-dim, rgba(242, 244, 247, 0.55));
+  text-wrap: balance;
+}
+
+.cta69-btn-wrap {
+  margin-top: 44px;
+}
+
+.cta69-footnote {
+  margin-top: 28px;
+  font-family: var(--font-body, sans-serif);
+  font-size: 0.875rem;
+  color: var(--fg-muted, rgba(242, 244, 247, 0.35));
+}

@@ -1,0 +1,66 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-dot 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* Status variants */
+.badge--draft {
+  color: var(--fg-dim);
+  background: rgba(242, 244, 247, 0.06);
+  border-color: rgba(242, 244, 247, 0.14);
+}
+
+.badge--issued {
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.08);
+  border-color: rgba(167, 139, 250, 0.20);
+}
+
+.badge--active {
+  color: var(--accent);
+  background: var(--accent-ghost);
+  border-color: rgba(32, 217, 255, 0.25);
+}
+
+.badge--fulfilled {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.07);
+  border-color: rgba(74, 222, 128, 0.18);
+}
+
+.badge--transferred {
+  color: #fb923c;
+  background: rgba(251, 146, 60, 0.07);
+  border-color: rgba(251, 146, 60, 0.18);
+}
+
+.badge--neutral {
+  color: var(--fg-muted);
+  background: rgba(242, 244, 247, 0.04);
+  border-color: rgba(242, 244, 247, 0.10);
+}
+
+.badge--info {
+  color: var(--accent);
+  background: var(--accent-ghost);
+  border-color: var(--accent-muted);
+}

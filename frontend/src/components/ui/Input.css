@@ -1,0 +1,49 @@
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-label {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.input-field {
+  background: rgba(242, 244, 247, 0.03);
+  border: 1px solid rgba(242, 244, 247, 0.10);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: 0.9rem;
+  padding: 11px 14px;
+  transition: border-color var(--transition), background var(--transition);
+  outline: none;
+  width: 100%;
+}
+
+.input-field::placeholder {
+  color: var(--fg-muted);
+}
+
+.input-field:focus {
+  border-color: rgba(32, 217, 255, 0.40);
+  background: rgba(32, 217, 255, 0.03);
+}
+
+.input-field--error {
+  border-color: rgba(242, 60, 60, 0.5);
+}
+
+.input-error {
+  font-size: 0.78rem;
+  color: #f87171;
+}
+
+.input-hint {
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+}
