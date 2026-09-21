@@ -1,0 +1,429 @@
+.home {
+  flex: 1;
+}
+
+/* ── Hero ── */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  width: 100%;
+  padding-top: 120px;
+  padding-bottom: 80px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.hero-label {
+  margin-bottom: 20px;
+
+  /* entrance */
+  opacity: 0;
+  animation: heroFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+}
+
+.hero-heading {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 5.8vw, 4.8rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--fg);
+  margin-bottom: 28px;
+  text-align: center;
+
+  /* entrance */
+  opacity: 0;
+  animation: heroFadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.25s forwards;
+}
+
+.hero-heading-accent {
+  color: var(--accent);
+}
+
+.hero-subline {
+  font-size: clamp(1rem, 1.8vw, 1.15rem);
+  color: var(--fg-dim);
+  max-width: 540px;
+  margin: 0 auto 36px;
+  line-height: 1.65;
+  text-align: center;
+
+  /* entrance */
+  opacity: 0;
+  animation: heroFadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+  justify-content: center;
+
+  /* entrance */
+  opacity: 0;
+  animation: heroFadeUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.58s forwards;
+}
+
+/* Role chain */
+.hero-roles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  /* entrance */
+  opacity: 0;
+  animation: heroFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.72s forwards;
+}
+
+.hero-roles-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-roles-label {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  padding: 4px 10px;
+  border: 1px solid var(--fg-subtle);
+  border-radius: 100px;
+}
+
+.hero-roles-arrow {
+  color: var(--accent);
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+/* ── Hero entrance keyframe ── */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced-motion: skip animations, show content immediately */
+@media (prefers-reduced-motion: reduce) {
+  .hero-label,
+  .hero-heading,
+  .hero-subline,
+  .hero-actions,
+  .hero-roles {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ── Scroll hint ── */
+.hero-scroll-hint {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+}
+
+.hero-scroll-hint span {
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.hero-scroll-line {
+  width: 1px;
+  height: 36px;
+  background: linear-gradient(to bottom, var(--fg-muted), transparent);
+  animation: fadeIn 2s ease infinite alternate;
+}
+
+/* ── Dotted Background Sections ── */
+.home-workflow,
+.home-roles,
+.home-canton {
+  position: relative;
+  overflow: hidden;
+}
+
+.home-workflow > .container,
+.home-roles > .container,
+.home-canton > .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Section Typography ── */
+.home-section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 16px;
+  letter-spacing: -0.03em;
+  text-align: left;
+}
+
+.home-section-sub {
+  font-size: 1rem;
+  color: var(--fg-dim);
+  max-width: 580px;
+  margin-bottom: 56px;
+  line-height: 1.65;
+  text-align: left;
+}
+
+/* ── Workflow ── */
+.workflow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  position: relative;
+  padding-bottom: 32px;
+}
+
+.workflow-step-number {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  min-width: 32px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.workflow-step-content {
+  flex: 1;
+  border-left: 1px solid var(--fg-subtle);
+  padding-left: 24px;
+  padding-bottom: 8px;
+}
+
+.workflow-connector {
+  display: none;
+}
+
+.workflow-step-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+
+.workflow-step-desc {
+  font-size: 0.875rem;
+  color: var(--fg-dim);
+  line-height: 1.6;
+}
+
+/* ── Roles ── */
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.role-card {
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.role-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.role-card-tag {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.role-card-desc {
+  font-size: 0.875rem;
+  color: var(--fg-dim);
+  line-height: 1.6;
+}
+
+.role-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.role-card-action {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: var(--accent-ghost);
+  border: 1px solid rgba(32, 217, 255, 0.18);
+  border-radius: 100px;
+  padding: 4px 10px;
+}
+
+/* ── Pillars ── */
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.pillar {
+  border-radius: var(--radius-lg);
+  padding: 28px 28px 28px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pillar-accent-line {
+  position: absolute;
+  left: 0;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent), transparent);
+  opacity: 0.5;
+}
+
+.pillar-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 12px;
+}
+
+.pillar-desc {
+  font-size: 0.875rem;
+  color: var(--fg-dim);
+  line-height: 1.6;
+}
+
+/* ── CTA Strip ── */
+.home-cta-strip {
+  padding: 80px 0;
+}
+
+.home-cta-inner {
+  border-radius: var(--radius-xl);
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+}
+
+.home-cta-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 10px;
+  letter-spacing: -0.03em;
+}
+
+.home-cta-sub {
+  font-size: 0.9rem;
+  color: var(--fg-dim);
+}
+
+.home-cta-actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* ── Scroll Margin for Fixed Nav ── */
+#workflow,
+#roles,
+#why-canton {
+  scroll-margin-top: 100px;
+}
+
+/* ── Scroll Reveal Animations ── */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(32px);
+  filter: blur(4px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--reveal-index, 0) * 0.12s);
+  will-change: opacity, transform, filter;
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .roles-grid, .pillars-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .roles-grid, .pillars-grid { grid-template-columns: 1fr; }
+  .home-cta-inner { flex-direction: column; align-items: flex-start; }
+  .hero-content { padding-top: 100px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+}
+

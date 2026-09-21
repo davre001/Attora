@@ -1,0 +1,27 @@
+.card {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-card-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 28px;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.card--accent {
+  border-color: rgba(32, 217, 255, 0.20);
+}
+
+.card--interactive {
+  cursor: pointer;
+}
+
+.card--interactive:hover {
+  border-color: rgba(242, 244, 247, 0.14);
+  background: rgba(242, 244, 247, 0.045);
+}
+
+.card--interactive:hover.card--accent {
+  border-color: rgba(32, 217, 255, 0.32);
+  background: rgba(32, 217, 255, 0.04);
+}

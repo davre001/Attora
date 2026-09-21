@@ -1,0 +1,55 @@
+.role-switch {
+  display: flex;
+  gap: 8px;
+  background: rgba(242, 244, 247, 0.03);
+  border: 1px solid rgba(242, 244, 247, 0.08);
+  border-radius: var(--radius-md);
+  padding: 6px;
+}
+
+.role-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 16px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.role-tab:hover:not(.role-tab--active) {
+  background: rgba(242, 244, 247, 0.04);
+  border-color: rgba(242, 244, 247, 0.08);
+}
+
+.role-tab--active {
+  background: var(--accent-ghost);
+  border-color: rgba(32, 217, 255, 0.25);
+}
+
+.role-tab-label {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg-dim);
+  transition: color var(--transition);
+}
+
+.role-tab--active .role-tab-label {
+  color: var(--accent);
+}
+
+.role-tab-desc {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.02em;
+}
+
+.role-tab--active .role-tab-desc {
+  color: var(--accent-dim);
+}

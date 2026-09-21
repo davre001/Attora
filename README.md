@@ -3,7 +3,7 @@
 **Private RWA workflow on Canton.**  
 Create → status → transfer or fulfill → audit.
 
-Attora is a pilot-ready business workflow for one real-world asset unit. The ledger is **Daml on Canton**. The UI is three roles: **Issuer**, **Holder**, **Observer**.
+tacet is a pilot-ready business workflow for one real-world asset unit. The ledger is **Daml on Canton**. The UI is three roles: **Issuer**, **Holder**, **Observer**.
 
 Built for **HackCanton — Track 1: Real-World Assets (RWA) & Business Workflows**.
 

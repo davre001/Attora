@@ -1,0 +1,15 @@
+.page {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding-top: calc(56px + 20px + 24px); /* nav height + top offset + extra */
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+
+/* Home page removes default padding (has its own hero) */
+.page--hero {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
