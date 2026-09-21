@@ -37,13 +37,17 @@ This file itemizes the setup and build work needed before the UI (see `Frontend_
 
 ## 5. Ledger API surface
 
-- [ ] Ledger **JSON API** not yet stood up/tested — everything so far talks to the sandbox over the gRPC Ledger API via `daml script`. Needs `daml json-api` (or the HackCanton-provided SDK) running and smoke-tested before the UI can call it.
-- [x] The four operations the UI's `lib/ledger.ts` needs map cleanly onto the model:
-  - `listUnits(party)` → query `RwaUnit`/`RwaHeader` visible to `party`.
-  - `create(issuer, {...})` → `exercise(issuerRoleCid, "CreateUnit", issuer, {...})`.
-  - `exercise(contractId, choice, party, args)` → direct ledger exercise, generic across all choices above.
-  - `auditTrail(observer)` → query `RwaHeader` as `observer`.
-- [ ] Explicit "wrong party gets rejected" test not yet written (only the happy path is covered by `demoFlow`) — worth adding once the JSON API is up.
+- [x] Ledger **JSON API** stood up (`daml json-api --ledger-host localhost --ledger-port 6865 --http-port 7575`) against a live sandbox and smoke-tested with real HTTP calls (see below). One gotcha: it **requires an `Authorization: Bearer <JWT>` header even when the underlying ledger has no real auth configured** — the sandbox doesn't verify the signature, but the JSON API layer still needs the `https://daml.com/ledger-api` claims (`applicationId`, `actAs`) to know which party is calling. Any HS256-signed token works against an unsecured sandbox.
+- [x] The four operations the UI's `lib/ledger.ts` needs, verified directly over HTTP:
+  - `listUnits(party)` → `POST /v1/query` with `templateIds` for `RwaUnit`/`RwaHeader`, as that party's token.
+  - `create(issuer, {...})` → `POST /v1/exercise` on the `IssuerRole` contract, choice `CreateUnit` — confirmed it atomically creates both `RwaUnit` and `RwaHeader` in one call.
+  - `exercise(contractId, choice, party, args)` → `POST /v1/exercise`, generic across all choices.
+  - `auditTrail(observer)` → `POST /v1/query` for `RwaHeader` as the observer's token — confirmed it returns status/assetRef only, no `amount`.
+- [x] Explicit "wrong party gets rejected" checks written as `Tacet.Setup:rejectionChecks` (`daml test`-verified) **and** re-confirmed manually over the live JSON API:
+  - Observer querying `RwaUnit` → empty result (not a stakeholder, can't see it exists at all).
+  - Observer exercising a choice on a `RwaUnit` cid they were never given → `CONTRACT_NOT_FOUND` (existence itself is hidden, stronger than a bare auth error).
+  - Holder (who *can* see the unit) exercising issuer-only `Issue` → `DAML_AUTHORIZATION_ERROR`, naming exactly which authorizer was missing.
+  - Issuer double-exercising `Issue` on an already-`Issued` unit → rejected on the business-rule `assertMsg`, not just authorization.
 
 ## 6. Deployment target
 
@@ -55,7 +59,7 @@ This file itemizes the setup and build work needed before the UI (see `Frontend_
 
 - [x] `scripts/allocate-parties.sh` — creates the three demo parties + `IssuerRole`. Requires `--upload-dar yes` (not automatic for `--script-name` runs, only for `--all`).
 - [x] `scripts/demo-flow.sh` — runs `create → issue → activate → transfer → fulfill` end-to-end, using its own `Demo*`-hinted parties so it can run on a participant that already has `allocate-parties.sh`'s parties without colliding.
-- [x] Ran both against a live sandbox — full lifecycle completes on-ledger; also covered by `daml test` (`Tacet.Setup:setup`, `Tacet.Setup:demoFlow`).
+- [x] Ran both against a live sandbox — full lifecycle completes on-ledger; also covered by `daml test` (`Tacet.Setup:setup`, `Tacet.Setup:demoFlow`, `Tacet.Setup:rejectionChecks`).
 
 ## 8. Privacy acceptance check (must pass before ship)
 
@@ -75,5 +79,5 @@ Bitget orders, Playbook, Attestcoin proofs, ERC-20 mocks, faucets, clip sizing, 
 
 - [x] `RwaUnit.daml` + `RwaHeader.daml` + `Registry.daml` + `Types.daml` + `Setup.daml`
 - [x] `scripts/allocate-parties.sh` + `scripts/demo-flow.sh`, both verified against a local sandbox
-- [ ] Three parties allocated on **DevNet** (only local sandbox so far)
-- [ ] Ledger JSON API reachable and serving the four operations the UI needs
+- [x] Ledger JSON API reachable and serving the four operations the UI needs (verified locally; not yet on DevNet)
+- [ ] Three parties allocated on **DevNet** (only local sandbox so far) — the one item genuinely blocked on getting DevNet access from HackCanton

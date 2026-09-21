@@ -72,3 +72,40 @@ demoFlow = do
   header.status === Fulfilled
 
   debug "demo flow complete: observer saw status only, never amount"
+
+-- | Confirms the ledger itself rejects unauthorized actions -- not just that
+-- the UI hides the buttons. Uses its own "Rej*" party hints so this can run
+-- alongside `setup`/`demoFlow` without colliding.
+rejectionChecks : Script ()
+rejectionChecks = do
+  (issuer, holder, observer) <- allocatePartiesAndRole "RejIssuer" "RejHolder" "RejObserver"
+  Some (issuerRoleCid, _issuerRole) <- queryContractKey @IssuerRole issuer issuer
+
+  (unitCid, _headerCid) <- submit issuer $ exerciseCmd issuerRoleCid CreateUnit with
+    unitId = "rejection-unit-1"
+    assetRef = "INVOICE-REJ-1"
+    amount = 1234.0
+    holder
+    observer
+    payloadHash = "sha256:rejection-test"
+
+  -- Holder can see the unit (they're an observer of it)...
+  holderView <- query @RwaUnit holder
+  assertMsg "holder should see the unit they were assigned" (length holderView == 1)
+
+  -- ...but Issue is issuer-only. The ledger must reject this regardless of
+  -- what the UI would have allowed.
+  submitMustFail holder $ exerciseCmd unitCid Issue
+
+  -- The observer is not a stakeholder of RwaUnit at all, so they cannot even
+  -- see it -- stronger than a plain authorization rejection, since existence
+  -- itself is hidden from a party with no need to know.
+  observerView <- query @RwaUnit observer
+  assertMsg "observer must not see the RwaUnit at all" (null observerView)
+
+  -- Issuing correctly, then trying to issue again, must fail the business
+  -- rule (status must be Draft) even though issuer IS the right party.
+  unitCid1 <- submit issuer $ exerciseCmd unitCid Issue
+  submitMustFail issuer $ exerciseCmd unitCid1 Issue
+
+  debug "rejection checks complete: wrong party and wrong state both rejected by the ledger"
