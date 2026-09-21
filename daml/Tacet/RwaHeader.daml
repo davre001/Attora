@@ -1,0 +1,36 @@
+module Attora.RwaHeader where
+
+import Attora.Types
+
+-- | What the Observer party is allowed to see: id, status, asset reference,
+-- and an opaque commitment hash. There is no `amount` field on this template
+-- at all -- that is a type-level guarantee that the observer path can never
+-- leak it, not a filter someone could forget to apply.
+template RwaHeader
+  with
+    issuer      : Party
+    observer    : Party
+    unitId      : Text
+    assetRef    : Text
+    payloadHash : Text
+    status      : Status
+  where
+    signatory issuer
+    observer observer
+
+    key (issuer, unitId) : (Party, Text)
+    maintainer key._1
+
+    -- | Re-mirrors the unit's status onto the header. Issuer-only and
+    -- deliberately separate from RwaUnit's own choices: a holder or new
+    -- holder is never a stakeholder of this contract, so they cannot
+    -- fetchByKey it (Daml requires the submitter of a key lookup to be a
+    -- maintainer). In a real deployment this is what an issuer-side
+    -- automation service (a Daml Trigger) calls after observing a status
+    -- change on RwaUnit -- see Backend_implementation.md.
+    choice SyncStatus : ContractId RwaHeader
+      with
+        newStatus : Status
+      controller issuer
+      do
+        create this with status = newStatus
