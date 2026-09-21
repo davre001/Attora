@@ -1,4 +1,4 @@
-module Attora.Types where
+module Tacet.Types where
 
 -- | Life-cycle status of an RWA unit. Changed only by ledger choices, never
 -- faked in UI state.

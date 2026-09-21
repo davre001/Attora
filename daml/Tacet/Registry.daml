@@ -1,8 +1,8 @@
-module Attora.Registry where
+module Tacet.Registry where
 
-import Attora.RwaHeader
-import Attora.RwaUnit
-import Attora.Types
+import Tacet.RwaHeader
+import Tacet.RwaUnit
+import Tacet.Types
 
 -- | One per issuer. The entry point for the "Create" step in the workflow --
 -- creating the RwaUnit and its RwaHeader together in a single choice is what

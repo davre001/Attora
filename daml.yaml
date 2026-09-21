@@ -4,7 +4,7 @@
 sdk-version: 2.10.6
 name: tacet
 source: daml
-init-script: Attora.Setup:setup
+init-script: Tacet.Setup:setup
 version: 0.1.0
 dependencies:
   - daml-prim

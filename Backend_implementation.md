@@ -9,15 +9,15 @@ This file itemizes the setup and build work needed before the UI (see `Frontend_
 ## 1. Daml environment setup
 
 - [x] Install the Daml SDK (`daml` assistant) matching the version HackCanton / Canton DevNet requires. Installed SDK 2.10.6 (Windows tarball, no GUI installer) to `%APPDATA%\daml`, on user `PATH`.
-- [x] Scaffold the project: `daml/daml.yaml` + source root `daml/Attora/`.
+- [x] Scaffold the project: `daml/daml.yaml` + source root `daml/Tacet/`.
 - [x] Confirm `daml build` and a local sandbox participant work before touching DevNet. Validated via `daml build`, `daml test`, and a real `daml sandbox --port 6865` run.
 
 ## 2. Data model — `RwaUnit.daml`
 
 - [x] Define the `RwaUnit` template. **Deviation from the original sketch:** signatory is `issuer` only, throughout — `holder` and `observer` are never signatories, only observers/controllers. This is the standard Daml "Iou-style" pattern and avoids needing the holder's up-front co-signature just to be assigned. Fields: `unitId`, `assetRef`, `amount`, `holder`, `status`.
-- [x] Status field is an enum on the contract, not app state: `Draft | Issued | Active | Transferred | Fulfilled` (`Attora/Types.daml`).
+- [x] Status field is an enum on the contract, not app state: `Draft | Issued | Active | Transferred | Fulfilled` (`Tacet/Types.daml`).
 - [x] Implement choices:
-  - `Create` — implemented as `IssuerRole.CreateUnit` (a factory choice) rather than directly on `RwaUnit`, so it can atomically create the paired `RwaHeader` in the same transaction. See `Attora/Registry.daml`.
+  - `Create` — implemented as `IssuerRole.CreateUnit` (a factory choice) rather than directly on `RwaUnit`, so it can atomically create the paired `RwaHeader` in the same transaction. See `Tacet/Registry.daml`.
   - `Issue` / `Activate` — issuer, advances status.
   - `Transfer` — explicit **propose/accept**: `ProposeTransfer` (holder) creates a `TransferProposal`; `AcceptTransfer` (new holder) or `RejectTransfer` (new holder) resolves it. Nobody becomes holder without their own consent.
   - `Fulfill` — holder, terminal status (accepts `Active` or `Transferred`).
@@ -25,9 +25,9 @@ This file itemizes the setup and build work needed before the UI (see `Frontend_
 
 ## 3. Privacy model — observer visibility
 
-- [x] Chose option (a): a separate `RwaHeader` contract (`Attora/RwaHeader.daml`) that the observer is an observer on. It has **no `amount` field at all** — a type-level guarantee, not a runtime filter.
+- [x] Chose option (a): a separate `RwaHeader` contract (`Tacet/RwaHeader.daml`) that the observer is an observer on. It has **no `amount` field at all** — a type-level guarantee, not a runtime filter.
 - [x] `amount` only ever lives on `RwaUnit`, whose observer is `holder` only — `observer` is never added to it.
-- [x] Verified in `demoFlow` (`daml/Attora/Setup.daml`): after the full lifecycle, `query @RwaUnit observer` returns zero contracts, and the observer's one `RwaHeader` shows `status == Fulfilled`.
+- [x] Verified in `demoFlow` (`daml/Tacet/Setup.daml`): after the full lifecycle, `query @RwaUnit observer` returns zero contracts, and the observer's one `RwaHeader` shows `status == Fulfilled`.
 - **Design note:** `RwaHeader` is intentionally decoupled from `RwaUnit`'s own choices. A holder/new-holder is never a stakeholder of the header, and Daml requires the *submitter* of a `fetchByKey` to be a maintainer of that key — so a holder-controlled choice cannot re-sync the header itself. Every status change on `RwaUnit` must be followed by an issuer-submitted `RwaHeader.SyncStatus` call. In production this second call is what an issuer-side **Daml Trigger** (a small automation service watching the ledger) would submit automatically — this is the one place a "backend service" still exists even in the Daml world, just for read-model projection, not business logic.
 
 ## 4. Party allocation
@@ -55,7 +55,7 @@ This file itemizes the setup and build work needed before the UI (see `Frontend_
 
 - [x] `scripts/allocate-parties.sh` — creates the three demo parties + `IssuerRole`. Requires `--upload-dar yes` (not automatic for `--script-name` runs, only for `--all`).
 - [x] `scripts/demo-flow.sh` — runs `create → issue → activate → transfer → fulfill` end-to-end, using its own `Demo*`-hinted parties so it can run on a participant that already has `allocate-parties.sh`'s parties without colliding.
-- [x] Ran both against a live sandbox — full lifecycle completes on-ledger; also covered by `daml test` (`Attora.Setup:setup`, `Attora.Setup:demoFlow`).
+- [x] Ran both against a live sandbox — full lifecycle completes on-ledger; also covered by `daml test` (`Tacet.Setup:setup`, `Tacet.Setup:demoFlow`).
 
 ## 8. Privacy acceptance check (must pass before ship)
 
@@ -65,7 +65,7 @@ This file itemizes the setup and build work needed before the UI (see `Frontend_
 - [x] New holder fulfills it.
 - [x] Observer's `query @RwaUnit` returns **nothing**, and their `RwaHeader` shows the completed status — proven programmatically by `demoFlow`, not yet through the real UI (UI doesn't exist yet).
 
-All five are asserted directly in `Attora.Setup:demoFlow` and pass under `daml test`.
+All five are asserted directly in `Tacet.Setup:demoFlow` and pass under `daml test`.
 
 ## Out of scope for backend
 

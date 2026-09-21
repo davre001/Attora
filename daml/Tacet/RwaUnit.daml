@@ -1,6 +1,6 @@
-module Attora.RwaUnit where
+module Tacet.RwaUnit where
 
-import Attora.Types
+import Tacet.Types
 
 -- | The commercial record: amount and terms. Only issuer and holder ever see
 -- this contract -- the observer is never added here, only to RwaHeader.

@@ -1,12 +1,12 @@
-module Attora.Setup where
+module Tacet.Setup where
 
 import DA.Assert ((===))
 import Daml.Script
 
-import Attora.Registry
-import Attora.RwaHeader
-import Attora.RwaUnit
-import Attora.Types
+import Tacet.Registry
+import Tacet.RwaHeader
+import Tacet.RwaUnit
+import Tacet.Types
 
 -- | Allocates the three named parties and gives the issuer their IssuerRole.
 -- Used both as `init-script` for local `daml start`, and by

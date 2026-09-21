@@ -1,6 +1,6 @@
-module Attora.RwaHeader where
+module Tacet.RwaHeader where
 
-import Attora.Types
+import Tacet.Types
 
 -- | What the Observer party is allowed to see: id, status, asset reference,
 -- and an opaque commitment hash. There is no `amount` field on this template

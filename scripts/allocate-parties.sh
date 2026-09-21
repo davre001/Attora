@@ -11,7 +11,7 @@ DAR="${DAR:-.daml/dist/tacet-0.1.0.dar}"
 
 daml script \
   --dar "$DAR" \
-  --script-name Attora.Setup:setup \
+  --script-name Tacet.Setup:setup \
   --ledger-host "$LEDGER_HOST" \
   --ledger-port "$LEDGER_PORT" \
   --upload-dar yes
