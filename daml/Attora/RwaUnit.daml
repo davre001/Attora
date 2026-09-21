@@ -1,0 +1,86 @@
+module Attora.RwaUnit where
+
+import Attora.Types
+
+-- | The commercial record: amount and terms. Only issuer and holder ever see
+-- this contract -- the observer is never added here, only to RwaHeader.
+--
+-- RwaHeader (the observer's view) is a separate, decoupled contract on
+-- purpose: a holder or new holder is never a stakeholder of the header, so
+-- they cannot re-sync it themselves (Daml key lookups require the submitter
+-- to be a maintainer). Every status change here must be mirrored onto the
+-- header by the issuer afterwards via RwaHeader.SyncStatus -- see
+-- Backend_implementation.md for the call sequence.
+template RwaUnit
+  with
+    issuer   : Party
+    holder   : Party
+    unitId   : Text
+    assetRef : Text
+    amount   : Decimal
+    status   : Status
+  where
+    signatory issuer
+    observer holder
+
+    key (issuer, unitId) : (Party, Text)
+    maintainer key._1
+
+    choice Issue : ContractId RwaUnit
+      controller issuer
+      do
+        assertMsg "unit must be Draft to issue" (status == Draft)
+        create this with status = Issued
+
+    choice Activate : ContractId RwaUnit
+      controller issuer
+      do
+        assertMsg "unit must be Issued to activate" (status == Issued)
+        create this with status = Active
+
+    -- | Holder-initiated. The unit is archived here and only comes back (as a
+    -- new RwaUnit) if the proposed new holder accepts -- nobody becomes a
+    -- holder without their own consent.
+    choice ProposeTransfer : ContractId TransferProposal
+      with
+        newHolder : Party
+      controller holder
+      do
+        assertMsg "unit must be Active to transfer" (status == Active)
+        create TransferProposal with
+          issuer, holder, unitId, assetRef, amount, newHolder
+
+    choice Fulfill : ContractId RwaUnit
+      controller holder
+      do
+        assertMsg "unit must be Active or Transferred to fulfill"
+          (status == Active || status == Transferred)
+        create this with status = Fulfilled
+
+-- | Standing offer to transfer holdership. Only the proposed new holder can
+-- act on it.
+template TransferProposal
+  with
+    issuer    : Party
+    holder    : Party
+    unitId    : Text
+    assetRef  : Text
+    amount    : Decimal
+    newHolder : Party
+  where
+    signatory issuer
+    observer holder, newHolder
+
+    choice AcceptTransfer : ContractId RwaUnit
+      controller newHolder
+      do
+        create RwaUnit with
+          issuer, holder = newHolder, unitId, assetRef, amount
+          status = Transferred
+
+    choice RejectTransfer : ContractId RwaUnit
+      controller newHolder
+      do
+        create RwaUnit with
+          issuer, holder, unitId, assetRef, amount
+          status = Active

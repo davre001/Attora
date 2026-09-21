@@ -1,0 +1,11 @@
+module Attora.Types where
+
+-- | Life-cycle status of an RWA unit. Changed only by ledger choices, never
+-- faked in UI state.
+data Status
+  = Draft
+  | Issued
+  | Active
+  | Transferred
+  | Fulfilled
+  deriving (Eq, Show)

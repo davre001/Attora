@@ -1,0 +1,33 @@
+module Attora.Registry where
+
+import Attora.RwaHeader
+import Attora.RwaUnit
+import Attora.Types
+
+-- | One per issuer. The entry point for the "Create" step in the workflow --
+-- creating the RwaUnit and its RwaHeader together in a single choice is what
+-- keeps them from ever drifting out of sync.
+template IssuerRole
+  with
+    issuer : Party
+  where
+    signatory issuer
+
+    key issuer : Party
+    maintainer key
+
+    nonconsuming choice CreateUnit : (ContractId RwaUnit, ContractId RwaHeader)
+      with
+        unitId      : Text
+        assetRef    : Text
+        amount      : Decimal
+        holder      : Party
+        observer    : Party
+        payloadHash : Text
+      controller issuer
+      do
+        headerCid <- create RwaHeader with
+          issuer, observer, unitId, assetRef, payloadHash, status = Draft
+        unitCid <- create RwaUnit with
+          issuer, holder, unitId, assetRef, amount, status = Draft
+        pure (unitCid, headerCid)

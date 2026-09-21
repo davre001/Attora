@@ -1,0 +1,74 @@
+module Attora.Setup where
+
+import DA.Assert ((===))
+import Daml.Script
+
+import Attora.Registry
+import Attora.RwaHeader
+import Attora.RwaUnit
+import Attora.Types
+
+-- | Allocates the three named parties and gives the issuer their IssuerRole.
+-- Used both as `init-script` for local `daml start`, and by
+-- scripts/allocate-parties.sh against a real participant.
+setup : Script (Party, Party, Party)
+setup = allocatePartiesAndRole "Issuer" "Holder" "Observer"
+
+allocatePartiesAndRole : Text -> Text -> Text -> Script (Party, Party, Party)
+allocatePartiesAndRole issuerHint holderHint observerHint = do
+  issuer   <- allocatePartyWithHint issuerHint (PartyIdHint issuerHint)
+  holder   <- allocatePartyWithHint holderHint (PartyIdHint holderHint)
+  observer <- allocatePartyWithHint observerHint (PartyIdHint observerHint)
+  _ <- submit issuer $ createCmd IssuerRole with issuer
+  pure (issuer, holder, observer)
+
+-- | Runs Create -> Issue -> Activate -> Transfer -> Fulfill end to end
+-- against whatever ledger this script is pointed at, then checks that the
+-- Observer's view never carries `amount`. Mirrors scripts/demo-flow.sh, and
+-- is the same check item 8 in Backend_implementation.md asks for.
+--
+-- Uses its own "Demo*" party hints, distinct from `setup`'s, so this can be
+-- run on a participant that already had scripts/allocate-parties.sh run
+-- against it without colliding on already-allocated parties.
+demoFlow : Script ()
+demoFlow = do
+  (issuer, holder, observer) <- allocatePartiesAndRole "DemoIssuer" "DemoHolder" "DemoObserver"
+  Some (issuerRoleCid, _issuerRole) <- queryContractKey @IssuerRole issuer issuer
+
+  (unitCid0, headerCid0) <- submit issuer $ exerciseCmd issuerRoleCid CreateUnit with
+    unitId = "unit-1"
+    assetRef = "INVOICE-001"
+    amount = 10000.0
+    holder
+    observer
+    payloadHash = "sha256:stand-in-for-a-real-commitment"
+
+  -- Every unit-side status change is a holder/issuer-controlled choice on
+  -- RwaUnit, immediately followed by the issuer mirroring the same status
+  -- onto RwaHeader. In production this second call is what an issuer-side
+  -- Daml Trigger does automatically on seeing the RwaUnit event.
+  unitCid1 <- submit issuer $ exerciseCmd unitCid0 Issue
+  headerCid1 <- submit issuer $ exerciseCmd headerCid0 SyncStatus with newStatus = Issued
+
+  unitCid2 <- submit issuer $ exerciseCmd unitCid1 Activate
+  headerCid2 <- submit issuer $ exerciseCmd headerCid1 SyncStatus with newStatus = Active
+
+  newHolder <- allocatePartyWithHint "DemoSecondHolder" (PartyIdHint "DemoSecondHolder")
+  proposalCid <- submit holder $ exerciseCmd unitCid2 ProposeTransfer with newHolder
+  unitCid3 <- submit newHolder $ exerciseCmd proposalCid AcceptTransfer
+  headerCid3 <- submit issuer $ exerciseCmd headerCid2 SyncStatus with newStatus = Transferred
+
+  _ <- submit newHolder $ exerciseCmd unitCid3 Fulfill
+  _ <- submit issuer $ exerciseCmd headerCid3 SyncStatus with newStatus = Fulfilled
+
+  -- Privacy acceptance check: the observer must not be able to see any
+  -- amount-bearing RwaUnit contract at all, and their one RwaHeader must
+  -- show the completed status.
+  observerUnits <- query @RwaUnit observer
+  assertMsg "observer must not see any RwaUnit contracts" (null observerUnits)
+
+  observerHeaders <- query @RwaHeader observer
+  [(_, header)] <- pure observerHeaders
+  header.status === Fulfilled
+
+  debug "demo flow complete: observer saw status only, never amount"
